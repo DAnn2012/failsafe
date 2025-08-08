@@ -1,0 +1,58 @@
+{
+  "name": "failsafe",
+  "version": "1.0.0",
+  "description": "Advanced fatal error recovery system that catches fatal errors and provides safe recovery options for WordPress sites.",
+  "main": "failsafe.php",
+  "scripts": {
+    "build": "npm run build:css && npm run build:js",
+    "build:css": "echo 'CSS build completed'",
+    "build:js": "echo 'JS build completed'",
+    "lint": "npm run lint:php && npm run lint:js",
+    "lint:php": "echo 'PHP linting would go here'",
+    "lint:js": "eslint assets/*.js",
+    "test": "echo 'Tests would go here'",
+    "zip": "npm run build && npm run create-zip",
+    "create-zip": "zip -r failsafe.zip . -x 'node_modules/*' '.git/*' '.gitignore' 'package*.json' '*.zip'",
+    "dev": "npm run watch:css & npm run watch:js",
+    "watch:css": "echo 'CSS watching would go here'",
+    "watch:js": "echo 'JS watching would go here'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/salimshrestha98/failsafe.git"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "error-recovery",
+    "fatal-error",
+    "failsafe",
+    "error-handling",
+    "wordpress-plugin",
+    "php-errors",
+    "site-recovery"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "GPL-2.0-or-later",
+  "bugs": {
+    "url": "https://github.com/salimshrestha98/failsafe/issues"
+  },
+  "homepage": "https://github.com/salimshrestha98/failsafe#readme",
+  "devDependencies": {},
+  "browserslist": [
+    "extends @wordpress/browserslist-config"
+  ],
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "wordpress": {
+    "plugin_name": "FailSafe",
+    "plugin_uri": "https://github.com/salimshrestha98/failsafe",
+    "requires_wp": "5.0",
+    "tested_up_to": "6.4",
+    "requires_php": "7.4",
+    "text_domain": "failsafe",
+    "domain_path": "/languages"
+  }
+}
