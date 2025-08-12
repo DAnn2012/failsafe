@@ -4,18 +4,8 @@
   "description": "Advanced fatal error recovery system that catches fatal errors and provides safe recovery options for WordPress sites.",
   "main": "failsafe.php",
   "scripts": {
-    "build": "npm run build:css && npm run build:js",
-    "build:css": "echo 'CSS build completed'",
-    "build:js": "echo 'JS build completed'",
-    "lint": "npm run lint:php && npm run lint:js",
-    "lint:php": "echo 'PHP linting would go here'",
-    "lint:js": "eslint assets/*.js",
-    "test": "echo 'Tests would go here'",
-    "zip": "npm run build && npm run create-zip",
-    "create-zip": "zip -r failsafe.zip . -x 'node_modules/*' '.git/*' '.gitignore' 'package*.json' '*.zip'",
-    "dev": "npm run watch:css & npm run watch:js",
-    "watch:css": "echo 'CSS watching would go here'",
-    "watch:js": "echo 'JS watching would go here'"
+    "build": "webpack --mode production",
+    "start": "webpack --mode development --watch"
   },
   "repository": {
     "type": "git",
@@ -38,10 +28,14 @@
     "url": "https://github.com/salimshrestha98/failsafe/issues"
   },
   "homepage": "https://github.com/salimshrestha98/failsafe#readme",
-  "devDependencies": {},
-  "browserslist": [
-    "extends @wordpress/browserslist-config"
-  ],
+  "devDependencies": {
+    "css-loader": "^7.1.2",
+    "mini-css-extract-plugin": "^2.9.4",
+    "sass": "^1.90.0",
+    "sass-loader": "^16.0.5",
+    "webpack": "^5.101.1",
+    "webpack-cli": "^6.0.1"
+  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
