@@ -66,9 +66,7 @@ class FailSafe {
     private function init_classes() {
         if (is_admin()) {
             $this->admin = new FailSafe_Admin();
-        }
-        
-        if (!is_admin()) {
+        } else {
             $this->frontend = new FailSafe_Frontend();
         }
         
@@ -86,120 +84,9 @@ class FailSafe {
      * Initialize error handling
      */
     public function init_error_handling() {
+        // Check for plugin updates and run any necessary migrations
+        FailSafe_Updater::check_for_updates();
+        
         $this->error_handler->init();
-    }
-    
-    /**
-     * Plugin activation
-     */
-    public static function activate() {
-        // Create mu-plugins directory if it doesn't exist
-        $mu_plugins_dir = WPMU_PLUGIN_DIR;
-        if (!file_exists($mu_plugins_dir)) {
-            wp_mkdir_p($mu_plugins_dir);
-        }
-        
-        // Remove existing mu-plugin loader if it exists (to ensure we have the latest version)
-        $destination = $mu_plugins_dir . '/failsafe-loader.php';
-        if (file_exists($destination)) {
-            unlink($destination);
-        }
-        
-        // Copy the latest mu-plugin loader
-        $source = FAILSAFE_PLUGIN_DIR . 'mu-plugin/failsafe-loader.php';
-        
-        if (file_exists($source)) {
-            $copy_result = copy($source, $destination);
-            if (!$copy_result) {
-                error_log('FailSafe: Failed to copy MU-plugin loader to mu-plugins directory');
-            } else {
-                error_log('FailSafe: Successfully installed MU-plugin loader');
-            }
-        } else {
-            error_log('FailSafe: MU-plugin loader source file not found at: ' . $source);
-        }
-        
-        // Set default options
-        $default_options = array(
-            'enabled_error_types' => array(
-                E_ERROR => true,
-                E_PARSE => true,
-                E_CORE_ERROR => true,
-                E_COMPILE_ERROR => true,
-                E_USER_ERROR => false,
-                E_RECOVERABLE_ERROR => false
-            ),
-            'show_frontend_notice' => true,
-            'auto_disable' => false,
-            'log_errors' => true
-        );
-        
-        add_option('failsafe_options', $default_options);
-        
-        // Create database table for error logs
-        self::create_error_log_table();
-    }
-    
-    /**
-     * Plugin deactivation
-     */
-    public static function deactivate() {
-        // Remove mu-plugin loader
-        $mu_plugin_file = WPMU_PLUGIN_DIR . '/failsafe-loader.php';
-        if (file_exists($mu_plugin_file)) {
-            $delete_result = unlink($mu_plugin_file);
-            if ($delete_result) {
-                error_log('FailSafe: Successfully removed MU-plugin loader');
-            } else {
-                error_log('FailSafe: Failed to remove MU-plugin loader from mu-plugins directory');
-            }
-        }
-        
-        // Clean up any early errors stored in options
-        delete_option('failsafe_early_errors');
-        delete_option('failsafe_pending_errors');
-    }
-    
-    /**
-     * Create error log table
-     */
-    private static function create_error_log_table() {
-        global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        $charset_collate = $wpdb->get_charset_collate();
-        
-        $sql = "CREATE TABLE $table_name (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            error_hash varchar(64) NOT NULL,
-            error_type varchar(50) NOT NULL,
-            error_message text NOT NULL,
-            error_file varchar(500) NOT NULL,
-            error_line int(11) NOT NULL,
-            plugin_theme_path varchar(500) DEFAULT NULL,
-            plugin_theme_type varchar(20) DEFAULT NULL,
-            error_time datetime DEFAULT CURRENT_TIMESTAMP,
-            status varchar(20) DEFAULT 'pending',
-            PRIMARY KEY (id),
-            UNIQUE KEY error_hash (error_hash)
-        ) $charset_collate;";
-        
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-    }
-    
-    /**
-     * Get plugin options
-     */
-    public function get_options() {
-        return get_option('failsafe_options', array());
-    }
-    
-    /**
-     * Update plugin options
-     */
-    public function update_options($options) {
-        return update_option('failsafe_options', $options);
-    }
+    }  
 }
