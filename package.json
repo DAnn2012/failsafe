@@ -5,7 +5,8 @@
   "main": "failsafe.php",
   "scripts": {
     "build": "webpack --mode production",
-    "start": "webpack --mode development --watch"
+    "start": "webpack --mode development --watch",
+    "zip": "node scripts/build-zip.js"
   },
   "repository": {
     "type": "git",
