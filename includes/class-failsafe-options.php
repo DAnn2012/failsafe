@@ -92,4 +92,16 @@ class FailSafe_Options {
     public static function get_recovery_user_roles() {
         return self::get_option('recovery_user_roles', array('administrator'));
     }
+
+    /**
+     * Get recovery options
+     */
+    public static function get_recovery_options() {
+        return get_option('failsafe_recovery', array());
+    }
+
+    public static function validate_recovery_hash($hash) {
+        $recovery_options = self::get_recovery_options();
+        return isset($recovery_options['hash']) && $recovery_options['hash'] === $hash;
+    }
 }

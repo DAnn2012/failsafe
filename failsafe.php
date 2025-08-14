@@ -16,16 +16,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Define plugin constants
-define('FAILSAFE_VERSION', '1.0.0');
-define('FAILSAFE_PLUGIN_FILE', __FILE__);
-define('FAILSAFE_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('FAILSAFE_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('FAILSAFE_PLUGIN_BASENAME', plugin_basename(__FILE__));
-
-// Include required files
-require_once FAILSAFE_PLUGIN_DIR . 'includes/class-loader.php';
-FailSafe_Loader::load();
+if (!class_exists('FailSafe_Loader') && file_exists(WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php')) {
+    require_once WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php';
+}
 
 /**
  * Main plugin initialization

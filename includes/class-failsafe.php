@@ -29,10 +29,6 @@ class FailSafe {
      */
     public $frontend;
     
-    /**
-     * Error handler instance
-     */
-    public $error_handler;
     
     /**
      * Get single instance
@@ -57,7 +53,7 @@ class FailSafe {
      */
     private function init_hooks() {
         add_action('init', array($this, 'load_textdomain'));
-        add_action('wp_loaded', array($this, 'init_error_handling'));
+        add_action('wp_loaded', array(FailSafe_Updater::class, 'check_for_updates'));
     }
     
     /**
@@ -69,8 +65,6 @@ class FailSafe {
         } else {
             $this->frontend = new FailSafe_Frontend();
         }
-        
-        $this->error_handler = new FailSafe_Error_Handler();
     }
     
     /**
@@ -79,14 +73,4 @@ class FailSafe {
     public function load_textdomain() {
         load_plugin_textdomain('failsafe', false, dirname(FAILSAFE_PLUGIN_BASENAME) . '/languages');
     }
-    
-    /**
-     * Initialize error handling
-     */
-    public function init_error_handling() {
-        // Check for plugin updates and run any necessary migrations
-        FailSafe_Updater::check_for_updates();
-        
-        $this->error_handler->init();
-    }  
 }

@@ -1,44 +1,59 @@
 <?php
-/**
- * FailSafe Error Handler Class
- */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * FailSafe Error Handler
+ * 
+ * This file contains the error handling logic that gets loaded by the MU-plugin.
+ * It handles fatal errors that occur both before and after WordPress fully loads.
+ */
 class FailSafe_Error_Handler {
     
     /**
-     * Initialize error handling
+     * Single instance of the class
      */
-    public function init() {
-        // Only register if not in admin and not during AJAX requests
-        if (!is_admin() || (defined('DOING_AJAX') && DOING_AJAX)) {
-            register_shutdown_function(array($this, 'handle_fatal_error'));
+    private static $instance = null;
+        
+    /**
+     * Get single instance
+     */
+    public static function get_instance() {
+        if (null === self::$instance) {
+            self::$instance = new self();
         }
+        return self::$instance;
     }
     
     /**
-     * Handle fatal errors
+     * Private constructor to prevent direct instantiation
      */
-    public function handle_fatal_error() {
+    private function __construct() {
+        if (!class_exists('FailSafe_Loader') && file_exists(WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php')) {
+            require_once WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php';
+        }
+
+        register_shutdown_function(array(__CLASS__, 'handle_fatal_error'));
+        
+        add_action('muplugins_loaded', array(__CLASS__, 'handle_recovery_action'));
+
+        add_action('wp_loaded', function() {
+            if (!has_action('shutdown', array(__CLASS__, 'handle_fatal_error'))) {
+                add_action('shutdown', array(__CLASS__, 'handle_fatal_error'));
+            }
+        });
+    }
+
+    /**
+     * Error handler for all fatal errors
+     * @return void
+     */
+    public static function handle_fatal_error() {
         $error = error_get_last();
         
-        if (!$error) {
-            return;
-        }
-        
-        $options = get_option('failsafe_options', array());
-        $enabled_types = isset($options['enabled_error_types']) ? $options['enabled_error_types'] : array();
-        
-        // Check if this error type should be handled
-        if (!isset($enabled_types[$error['type']]) || !$enabled_types[$error['type']]) {
-            return;
-        }
-        
-        // Only handle specific error types
-        if (!in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR])) {
+        if (!$error || !FailSafe_Options::is_error_type_enabled($error['type'])) {
             return;
         }
         
@@ -46,120 +61,43 @@ class FailSafe_Error_Handler {
         $line = $error['line'];
         $message = $error['message'];
         
-        // Create error hash for identification
-        $error_hash = $this->create_error_hash($file, $line, $message);
+        $error_hash = hash('sha256', $file . ':' . $line . ':' . $message);
         
-        // Detect if error is from plugin or theme
-        $plugin_theme_info = $this->detect_plugin_or_theme($file);
+        $plugin_theme_info = FailSafe_Helpers::detect_plugin_or_theme($file);
         
-        // Log the error
-        if (isset($options['log_errors']) && $options['log_errors']) {
-            $this->log_error($error_hash, $error, $plugin_theme_info);
+        if (FailSafe_Options::is_logging_enabled()) {
+            self::log_error($error_hash, $error, $plugin_theme_info);
         }
         
-        // Handle based on settings
-        if (isset($options['auto_disable']) && $options['auto_disable']) {
-            $this->auto_disable_plugin_theme($plugin_theme_info);
-        } elseif (isset($options['show_frontend_notice']) && $options['show_frontend_notice']) {
-            // Error will be shown on frontend via the frontend class
+        self::show_recovery_message($error, $plugin_theme_info);
+    }
+    
+    /**
+     * Handle recovery actions from GET parameters
+     */
+    public static function handle_recovery_action() {
+        if (!isset($_GET['failsafe_action']) || !isset($_GET['failsafe_hash'])) {
             return;
-        } else {
-            // Default behavior - auto disable
-            $this->auto_disable_plugin_theme($plugin_theme_info);
         }
-    }
-    
-    /**
-     * Create unique hash for error identification
-     */
-    private function create_error_hash($file, $line, $message) {
-        return hash('sha256', $file . ':' . $line . ':' . $message);
-    }
-    
-    /**
-     * Detect if error is from plugin or theme
-     */
-    private function detect_plugin_or_theme($file) {
-        $result = array(
-            'type' => null,
-            'path' => null,
-            'name' => null
-        );
         
-        // Normalize path separators
-        $file = str_replace('\\', '/', $file);
-        $plugins_path = str_replace('\\', '/', WP_PLUGIN_DIR);
-        $themes_path = str_replace('\\', '/', get_theme_root());
+        $action = FailSafe_Helpers::sanitize_input($_GET['failsafe_action']);
+        $hash = FailSafe_Helpers::sanitize_input($_GET['failsafe_hash']);
+        $theme = isset($_GET['failsafe_theme']) ? FailSafe_Helpers::sanitize_input($_GET['failsafe_theme']) : '';
+        $plugins = isset($_GET['failsafe_plugins']) ? FailSafe_Helpers::sanitize_input($_GET['failsafe_plugins']) : array();
         
-        // Check if it's a plugin
-        if (strpos($file, $plugins_path) !== false) {
-            $plugin_path = $this->find_plugin_main_file($file);
-            if ($plugin_path) {
-                $result['type'] = 'plugin';
-                $result['path'] = plugin_basename($plugin_path);
-                $plugin_data = get_plugin_data($plugin_path, false, false);
-                $result['name'] = !empty($plugin_data['Name']) ? $plugin_data['Name'] : basename($plugin_path);
+        if ( FailSafe_Options::validate_recovery_hash($hash) ) {
+            if ($action === 'deactivate_plugins') {
+                self::deactivate_plugins($plugins, $hash);
+            } elseif ($action === 'switch_theme') {
+                self::switch_theme($theme);
             }
         }
-        // Check if it's a theme
-        elseif (strpos($file, $themes_path) !== false) {
-            $theme_path = $this->find_theme_from_file($file);
-            if ($theme_path) {
-                $result['type'] = 'theme';
-                $result['path'] = $theme_path;
-                $theme = wp_get_theme($theme_path);
-                $result['name'] = $theme->get('Name');
-            }
-        }
-        
-        return $result;
     }
-    
-    /**
-     * Find the main plugin file (adapted from original code)
-     */
-    private function find_plugin_main_file($file_path) {
-        $plugin_dir = dirname($file_path);
-        
-        // Go up until you reach the 'plugins' directory
-        while ($plugin_dir && basename(dirname($plugin_dir)) !== 'plugins') {
-            $plugin_dir = dirname($plugin_dir);
-        }
-        
-        // Now scan that directory for all *.php files and check for plugin headers
-        $php_files = glob($plugin_dir . '/*.php');
-        if (is_array($php_files)) {
-            foreach ($php_files as $php_file) {
-                $plugin_data = get_plugin_data($php_file, false, false);
-                if (!empty($plugin_data['Name'])) {
-                    return $php_file;
-                }
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Find theme from file path
-     */
-    private function find_theme_from_file($file_path) {
-        $themes_path = get_theme_root();
-        $relative_path = str_replace($themes_path . '/', '', $file_path);
-        $theme_dir = explode('/', $relative_path)[0];
-        
-        // Check if theme exists
-        if (wp_get_theme($theme_dir)->exists()) {
-            return $theme_dir;
-        }
-        
-        return null;
-    }
-    
+
     /**
      * Log error to database
      */
-    private function log_error($error_hash, $error, $plugin_theme_info) {
+    private static function log_error($error_hash, $error, $plugin_theme_info) {
         global $wpdb;
         
         $table_name = $wpdb->prefix . 'failsafe_error_logs';
@@ -187,7 +125,7 @@ class FailSafe_Error_Handler {
             $table_name,
             array(
                 'error_hash' => $error_hash,
-                'error_type' => $this->get_error_type_name($error['type']),
+                'error_type' => FailSafe_Helpers::get_error_type_name($error['type']),
                 'error_message' => $error['message'],
                 'error_file' => $error['file'],
                 'error_line' => $error['line'],
@@ -211,63 +149,132 @@ class FailSafe_Error_Handler {
     }
     
     /**
-     * Get human-readable error type name
+     * Show comprehensive recovery message with all plugins and themes
      */
-    private function get_error_type_name($error_type) {
-        $error_types = array(
-            E_ERROR => 'E_ERROR',
-            E_PARSE => 'E_PARSE',
-            E_CORE_ERROR => 'E_CORE_ERROR',
-            E_COMPILE_ERROR => 'E_COMPILE_ERROR',
-            E_USER_ERROR => 'E_USER_ERROR',
-            E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR'
-        );
+    private static function show_recovery_message($error, $plugin_theme_info) {     
+        $failsafe_recovery = get_option('failsafe_recovery', array());
+        if ( !isset($failsafe_recovery['hash']) ) {
+            $error_hash = hash('sha256', $error['file'] . ':' . $error['line'] . ':' . $error['message'] . ':' . time());
+            $failsafe_recovery = $plugin_theme_info ? $plugin_theme_info : array('type' => 'unknown', 'name' => 'Unknown', 'path' => '');
+            $failsafe_recovery['hash'] = $error_hash;
+
+            update_option('failsafe_recovery', $failsafe_recovery);
+        } else {
+            $error_hash = $failsafe_recovery['hash'];
+        }
         
-        return isset($error_types[$error_type]) ? $error_types[$error_type] : 'UNKNOWN_ERROR';
+        $current_url = FailSafe_Helpers::get_current_url();
+
+        // Prepare variables for comprehensive recovery template
+        $causing_item = $plugin_theme_info ? FailSafe_Helpers::escape_html($plugin_theme_info['name']) : 'Unknown Component';
+        $causing_type = $plugin_theme_info ? $plugin_theme_info['type'] : 'unknown';
+
+        // Get all active plugins and available themes
+        $active_plugins = FailSafe_Helpers::get_active_plugins_with_names();
+        $available_themes = FailSafe_Helpers::get_available_themes();
+        $current_theme = get_option('stylesheet');
+
+        // Build base URL for actions
+        $base_url = $current_url . (strpos($current_url, '?') !== false ? '&' : '?');
+        
+        include __DIR__ . '/../templates/recovery-message.php';
     }
     
     /**
-     * Automatically disable plugin or theme
+     * Auto-disable plugin or theme (original behavior)
      */
-    private function auto_disable_plugin_theme($plugin_theme_info) {
-        if (!$plugin_theme_info['type'] || !$plugin_theme_info['path']) {
+    private static function switch_theme($theme_slug) {
+        $recovery_options = FailSafe_Options::get_recovery_options();
+
+        $type = $recovery_options['type'];
+        $path = $recovery_options['path'];
+        $redirect_url = '';
+
+        if ($type === 'theme' && $path) {
+
+            $theme_valid = false;
+            
+            if (function_exists('wp_get_theme')) {
+                $theme = wp_get_theme($theme_slug);
+                $theme_valid = $theme->exists() && !$theme->errors();
+            } else {
+                // Fallback check - verify theme directory exists
+                $themes_dir = get_theme_root();
+                $theme_path = $themes_dir . '/' . $theme_slug;
+                $theme_valid = is_dir($theme_path) && file_exists($theme_path . '/style.css');
+            }
+            
+            if ($theme_valid) {
+                // Get current theme info for cleanup
+                $current_stylesheet = get_option('stylesheet');
+                
+                // Manually switch theme options in database
+                update_option('template', $theme_slug);
+                update_option('stylesheet', $theme_slug);
+                
+                // Clear cached theme mods to prevent issues
+                if ($current_stylesheet) {
+                    delete_option("theme_mods_$current_stylesheet");
+                }
+                
+                // Update recovery info
+                $failsafe_recovery['recovered'] = true;
+                $failsafe_recovery['switched_to'] = $theme_slug;
+                $failsafe_recovery['recovery_method'] = 'manual_db_switch';
+                
+                // Redirect to admin to complete the theme switch
+                $redirect_url = admin_url();
+
+            }
+        }
+
+        update_option('failsafe_recovery', $failsafe_recovery);
+        
+        header('Location: ' . $redirect_url);
+        exit;
+    }
+
+    /**
+     * Deactivate multiple plugins
+     */
+    private static function deactivate_plugins($plugins, $hash) {
+        if (!is_array($plugins) || empty($plugins)) {
             return;
         }
         
-        if ($plugin_theme_info['type'] === 'plugin') {
-            if (is_plugin_active($plugin_theme_info['path'])) {
-                deactivate_plugins($plugin_theme_info['path']);
-                error_log("FailSafe: Auto-disabled plugin {$plugin_theme_info['path']} due to fatal error");
-                
-                // Update error status in database
-                $this->update_error_status_by_path($plugin_theme_info['path'], 'auto_resolved');
-            }
-        } elseif ($plugin_theme_info['type'] === 'theme') {
-            $current_theme = get_option('stylesheet');
-            if ($current_theme === $plugin_theme_info['path']) {
-                switch_theme(WP_DEFAULT_THEME);
-                error_log("FailSafe: Auto-switched theme due to fatal error in {$plugin_theme_info['path']}");
-                
-                // Update error status in database
-                $this->update_error_status_by_path($plugin_theme_info['path'], 'auto_resolved');
+        $active_plugins = get_option('active_plugins', array());
+        $deactivated_plugins = array();
+        
+        foreach ($plugins as $plugin_file) {
+            $plugin_file = FailSafe_Helpers::sanitize_input($plugin_file);
+            if (in_array($plugin_file, $active_plugins)) {
+                $deactivated_plugins[] = $plugin_file;
             }
         }
-    }
-    
-    /**
-     * Update error status by plugin/theme path
-     */
-    private function update_error_status_by_path($path, $status) {
-        global $wpdb;
         
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
+        if (!empty($deactivated_plugins)) {
+            // Deactivate the plugins
+            if (function_exists('deactivate_plugins')) {
+                deactivate_plugins($deactivated_plugins);
+            } else {
+                // Manual deactivation if function not available
+                $remaining_plugins = array_diff($active_plugins, $deactivated_plugins);
+                update_option('active_plugins', $remaining_plugins);
+            }
+            
+            // Update recovery info
+            $failsafe_recovery = get_option('failsafe_recovery', array());
+            $failsafe_recovery['recovered'] = true;
+            $failsafe_recovery['deactivated_plugins'] = $deactivated_plugins;
+            $failsafe_recovery['recovery_method'] = 'multiple_plugin_deactivation';
+            update_option('failsafe_recovery', $failsafe_recovery);
+        }
         
-        $wpdb->update(
-            $table_name,
-            array('status' => $status),
-            array('plugin_theme_path' => $path, 'status' => 'pending'),
-            array('%s'),
-            array('%s', '%s')
-        );
+        // Redirect to plugins page
+        $redirect_url = admin_url('plugins.php');
+        header('Location: ' . $redirect_url);
+        exit;
     }
 }
+
+FailSafe_Error_Handler::get_instance();

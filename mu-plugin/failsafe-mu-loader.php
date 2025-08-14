@@ -17,7 +17,7 @@ if (!defined('ABSPATH')) {
 
 // Check if FailSafe plugin exists and is active
 $failsafe_plugin_dir = WP_PLUGIN_DIR . '/failsafe/';
-$failsafe_handler_file = $failsafe_plugin_dir . 'includes/early-handler.php';
+$failsafe_handler_file = $failsafe_plugin_dir . 'includes/class-failsafe-error-handler.php';
 
 if (file_exists($failsafe_handler_file)) {
     // Check if plugin is active

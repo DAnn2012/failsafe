@@ -42,13 +42,13 @@ class FailSafe_Activator {
         }
         
         // Remove existing mu-plugin loader if it exists (to ensure we have the latest version)
-        $destination = $mu_plugins_dir . '/failsafe-loader.php';
+        $destination = $mu_plugins_dir . '/failsafe-mu-loader.php';
         if (file_exists($destination)) {
             unlink($destination);
         }
         
         // Copy the latest mu-plugin loader
-        $source = FAILSAFE_PLUGIN_DIR . 'mu-plugin/failsafe-loader.php';
+        $source = FAILSAFE_PLUGIN_DIR . 'mu-plugin/failsafe-mu-loader.php';
         
         if (file_exists($source)) {
             $copy_result = copy($source, $destination);
@@ -110,7 +110,7 @@ class FailSafe_Activator {
      */
     public static function delete_mu_plugin_loader() {
         // Remove mu-plugin loader
-        $mu_plugin_file = WPMU_PLUGIN_DIR . '/failsafe-loader.php';
+        $mu_plugin_file = WPMU_PLUGIN_DIR . '/failsafe-mu-loader.php';
         if (file_exists($mu_plugin_file)) {
             $delete_result = unlink($mu_plugin_file);
             if ($delete_result) {
@@ -126,7 +126,7 @@ class FailSafe_Activator {
      */
     public static function delete_options() {
         // Clean up any early errors stored in options
-        delete_option('failsafe_early_errors');
-        delete_option('failsafe_pending_errors');
+        // delete_option('failsafe_early_errors');
+        // delete_option('failsafe_pending_errors');
     }
 }
