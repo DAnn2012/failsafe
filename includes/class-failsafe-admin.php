@@ -237,6 +237,14 @@ class FailSafe_Admin {
                                 <div class="failsafe-setting-info">
                                     <label for="log_errors" class="failsafe-setting-title"><?php _e('Keep log of errors', 'failsafe'); ?></label>
                                     <p class="failsafe-setting-description"><?php _e('Maintain a detailed log of all detected errors for analysis and troubleshooting', 'failsafe'); ?></p>
+                                    <?php if (isset($options['log_errors']) && $options['log_errors']): ?>
+                                        <div class="failsafe-setting-link">
+                                            <a href="<?php echo admin_url('tools.php?page=failsafe-errors'); ?>" class="failsafe-inline-link">
+                                                <span class="dashicons dashicons-list-view"></span>
+                                                <?php _e('View Error Logs', 'failsafe'); ?>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="failsafe-setting-control">
                                     <div class="failsafe-toggle-wrapper">
@@ -288,13 +296,9 @@ class FailSafe_Admin {
 
                 <div class="failsafe-save-section">
                     <div class="failsafe-action-buttons">
-                        <div class="failsafe-save-button">
+                        <div class="failsafe-save-button" style="text-align: right;">
                             <?php submit_button(__('Save Settings', 'failsafe'), 'primary', 'submit', false); ?>
                         </div>
-                        <a href="<?php echo admin_url('tools.php?page=failsafe-errors'); ?>" class="button button-secondary failsafe-view-logs-button">
-                            <span class="dashicons dashicons-list-view"></span>
-                            <?php _e('View Error Logs', 'failsafe'); ?>
-                        </a>
                     </div>
                 </div>
             </form>
