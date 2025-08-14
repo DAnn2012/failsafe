@@ -532,13 +532,61 @@ class FailSafe_Admin {
         $failsafe_recovery = get_option('failsafe_recovery', array());
 
         if ( !empty($failsafe_recovery) && isset($failsafe_recovery['recovered']) && $failsafe_recovery['recovered'] ) {
-            ?>
-            <div class="notice notice-success is-dismissible">
-                <p>
-                    <strong><?php printf('The %s %s has been successfully disabled.', $failsafe_recovery['type'], $failsafe_recovery['name']); ?></strong>
-                </p>
-            </div>
-            <?php
+            $message = '';
+            
+            // Check if plugins were deactivated
+            if (isset($failsafe_recovery['deactivated_plugins']) && !empty($failsafe_recovery['deactivated_plugins'])) {
+                $deactivated_plugin_names = array();
+                
+                foreach ($failsafe_recovery['deactivated_plugins'] as $plugin_path) {
+                    // Get plugin name from the path
+                    $plugin_name = basename($plugin_path, '.php');
+                    
+                    // Try to get the actual plugin name if possible
+                    if (function_exists('get_plugin_data')) {
+                        $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_path);
+                        if (!empty($plugin_data['Name'])) {
+                            $plugin_name = $plugin_data['Name'];
+                        }
+                    }
+                    
+                    $deactivated_plugin_names[] = $plugin_name;
+                }
+                
+                if (count($deactivated_plugin_names) === 1) {
+                    $message = sprintf('Plugin "%s" has been successfully deactivated.', $deactivated_plugin_names[0]);
+                } else {
+                    $message = sprintf('The following plugins have been successfully deactivated: %s', implode(', ', $deactivated_plugin_names));
+                }
+            } 
+            // Check if theme was switched
+            elseif (isset($failsafe_recovery['switched_to'])) {
+                $theme_name = $failsafe_recovery['switched_to'];
+                
+                // Try to get the actual theme name if possible
+                if (function_exists('wp_get_theme')) {
+                    $theme = wp_get_theme($failsafe_recovery['switched_to']);
+                    if ($theme->exists()) {
+                        $theme_name = $theme->get('Name');
+                    }
+                }
+                
+                $message = sprintf('Theme has been successfully switched to "%s".', $theme_name);
+            }
+            // Fallback to original behavior for other recovery methods
+            elseif (isset($failsafe_recovery['type']) && isset($failsafe_recovery['name'])) {
+                $message = sprintf('The %s %s has been successfully disabled.', $failsafe_recovery['type'], $failsafe_recovery['name']);
+            }
+            
+            if (!empty($message)) {
+                ?>
+                <div class="notice notice-success is-dismissible">
+                    <p>
+                        <?php echo esc_html($message); ?>
+                    </p>
+                </div>
+                <?php
+            }
 
             delete_option('failsafe_recovery');
         }

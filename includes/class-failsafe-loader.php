@@ -27,7 +27,6 @@ class FailSafe_Loader {
         require_once FAILSAFE_PLUGIN_DIR . 'includes/class-failsafe-updater.php';
         require_once FAILSAFE_PLUGIN_DIR . 'includes/class-failsafe-options.php';
         require_once FAILSAFE_PLUGIN_DIR . 'includes/class-failsafe-database.php';
-        require_once FAILSAFE_PLUGIN_DIR . 'includes/class-failsafe-error-handler.php';
     }
 }
 
