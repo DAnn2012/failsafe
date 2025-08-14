@@ -238,6 +238,44 @@ $shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
     line-height: 1.5;
 }
 
+.failsafe-setting-link {
+    margin-top: 0.75rem;
+}
+
+.failsafe-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #667eea;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    background: rgba(102, 126, 234, 0.05);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+
+    &:hover {
+        background: rgba(102, 126, 234, 0.1);
+        border-color: rgba(102, 126, 234, 0.2);
+        color: #5a67d8;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .dashicons {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+    }
+}
+
 .failsafe-setting-control {
     flex-shrink: 0;
 }
@@ -557,10 +595,11 @@ $shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
 
 .failsafe-action-buttons {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
+    padding-right: calc(6rem - 15px);
 }
 
 .failsafe-save-button {
@@ -612,41 +651,7 @@ $shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
     }
 }
 
-.failsafe-view-logs-button {
-    background: #f3f4f6 !important;
-    border: 2px solid #d1d5db !important;
-    border-radius: 12px !important;
-    padding: 1rem 2rem !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    color: #374151 !important;
-    text-decoration: none !important;
-    transition: all 0.3s ease !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 0.5rem !important;
-    height: auto !important;
-    line-height: 1.2 !important;
 
-    &:hover {
-        background: #e5e7eb !important;
-        border-color: #9ca3af !important;
-        color: #1f2937 !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    &:focus {
-        border-color: #667eea !important;
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
-    }
-
-    .dashicons {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-    }
-}
 
 @keyframes failsafe-button-spin {
     0% {
@@ -774,8 +779,7 @@ $shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
         align-items: stretch;
     }
 
-    .failsafe-save-button,
-    .failsafe-view-logs-button {
+    .failsafe-save-button {
         width: 100% !important;
         text-align: center !important;
         justify-content: center !important;
