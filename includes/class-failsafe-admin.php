@@ -15,6 +15,7 @@ class FailSafe_Admin {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'handle_activation_redirect'));
+        add_action('admin_init', array($this, 'handle_download_action'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('wp_ajax_failsafe_disable_plugin', array($this, 'ajax_disable_plugin'));
         add_action('wp_ajax_failsafe_save_settings', array($this, 'ajax_save_settings'));
@@ -61,6 +62,17 @@ class FailSafe_Admin {
             // Redirect to settings page
             wp_safe_redirect(admin_url('options-general.php?page=failsafe-settings&welcome=1'));
             exit;
+        }
+    }
+    
+    /**
+     * Handle download action early before any output
+     */
+    public function handle_download_action() {
+        if (isset($_GET['page']) && $_GET['page'] === 'failsafe-errors' && 
+            isset($_GET['action']) && $_GET['action'] === 'download' && 
+            wp_verify_nonce($_GET['_wpnonce'], 'failsafe_download_logs')) {
+            $this->download_error_logs();
         }
     }
     
@@ -113,6 +125,24 @@ class FailSafe_Admin {
             }
         } else {
             $sanitized['recovery_user_roles'] = array('administrator');
+        }
+        
+        // Sanitize new settings
+        $sanitized['delete_data_on_uninstall'] = isset($options['delete_data_on_uninstall']) && $options['delete_data_on_uninstall'];
+        $sanitized['admin_only_recovery'] = isset($options['admin_only_recovery']) && $options['admin_only_recovery'];
+        $sanitized['show_error_details'] = isset($options['show_error_details']) && $options['show_error_details'];
+        
+        // Sanitize protected plugins list
+        if (isset($options['protected_plugins']) && is_array($options['protected_plugins'])) {
+            $sanitized['protected_plugins'] = array();
+            foreach ($options['protected_plugins'] as $plugin) {
+                $plugin = sanitize_text_field($plugin);
+                if (!empty($plugin)) {
+                    $sanitized['protected_plugins'][] = $plugin;
+                }
+            }
+        } else {
+            $sanitized['protected_plugins'] = array();
         }
         
         return $sanitized;
@@ -239,9 +269,13 @@ class FailSafe_Admin {
                                     <p class="failsafe-setting-description"><?php _e('Maintain a detailed log of all detected errors for analysis and troubleshooting', 'failsafe'); ?></p>
                                     <?php if (isset($options['log_errors']) && $options['log_errors']): ?>
                                         <div class="failsafe-setting-link">
-                                            <a href="<?php echo admin_url('tools.php?page=failsafe-errors'); ?>" class="failsafe-inline-link">
+                                            <a href="<?php echo admin_url('tools.php?page=failsafe-errors'); ?>" class="failsafe-inline-link" target="_blank">
                                                 <span class="dashicons dashicons-list-view"></span>
                                                 <?php _e('View Error Logs', 'failsafe'); ?>
+                                            </a>
+                                            <a href="<?php echo wp_nonce_url(admin_url('tools.php?page=failsafe-errors&action=download'), 'failsafe_download_logs'); ?>" class="failsafe-inline-link" style="margin-left: 15px;" target="_blank">
+                                                <span class="dashicons dashicons-download"></span>
+                                                <?php _e('Download Logs', 'failsafe'); ?>
                                             </a>
                                         </div>
                                     <?php endif; ?>
@@ -272,22 +306,120 @@ class FailSafe_Admin {
                                     global $wp_roles;
                                     $all_roles = $wp_roles->roles;
                                     
-                                    echo '<div class="failsafe-user-roles-wrapper">';
+                                    echo '<select name="failsafe_options[recovery_user_roles][]" multiple class="failsafe-choices-select" id="recoveryRoles" data-placeholder="' . esc_attr__('Select user roles...', 'failsafe') . '">';
                                     foreach ($all_roles as $role_key => $role_info) {
-                                        $checked = in_array($role_key, $selected_roles);
+                                        $selected = in_array($role_key, $selected_roles);
                                         printf(
-                                            '<label class="failsafe-role-item">
-                                                <input type="checkbox" name="failsafe_options[recovery_user_roles][]" value="%s" %s />
-                                                <span class="failsafe-role-checkbox"></span>
-                                                <span class="failsafe-role-name">%s</span>
-                                            </label>',
+                                            '<option value="%s" %s>%s</option>',
                                             esc_attr($role_key),
-                                            checked(true, $checked, false),
+                                            selected(true, $selected, false),
                                             esc_html($role_info['name'])
                                         );
                                     }
-                                    echo '</div>';
+                                    echo '</select>';
                                     ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Settings Card -->
+                    <div class="failsafe-settings-card">
+                        <div class="failsafe-card-header">
+                            <h2><?php _e('Advanced Settings', 'failsafe'); ?></h2>
+                            <p><?php _e('Configure advanced behavior and security options for the FailSafe plugin.', 'failsafe'); ?></p>
+                        </div>
+                        <div class="failsafe-card-body">
+                            <?php 
+                            $admin_only_checked = isset($options['admin_only_recovery']) ? $options['admin_only_recovery'] : false;
+                            ?>
+                            <div class="failsafe-setting-row">
+                                <div class="failsafe-setting-info">
+                                    <label for="admin_only_recovery" class="failsafe-setting-title"><?php _e('Admin-only error recovery interface', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php _e('Show error recovery interface only in admin area. When enabled, frontend users will not see recovery options.', 'failsafe'); ?></p>
+                                </div>
+                                <div class="failsafe-setting-control">
+                                    <div class="failsafe-toggle-wrapper">
+                                        <label class="failsafe-toggle">
+                                            <input type="checkbox" id="admin_only_recovery" name="failsafe_options[admin_only_recovery]" value="1" <?php checked(1, $admin_only_checked, true); ?> />
+                                            <span class="failsafe-toggle-slider"></span>
+                                        </label>
+                                        <span class="failsafe-toggle-label"><?php echo $admin_only_checked ? __('Admin Only', 'failsafe') : __('All Users', 'failsafe'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <?php 
+                            $show_details_checked = isset($options['show_error_details']) ? $options['show_error_details'] : true;
+                            ?>
+                            <div class="failsafe-setting-row">
+                                <div class="failsafe-setting-info">
+                                    <label for="show_error_details" class="failsafe-setting-title"><?php _e('Show detailed error messages', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php _e('Display actual error messages in the recovery interface. Disable this to show generic error messages for security.', 'failsafe'); ?></p>
+                                </div>
+                                <div class="failsafe-setting-control">
+                                    <div class="failsafe-toggle-wrapper">
+                                        <label class="failsafe-toggle">
+                                            <input type="checkbox" id="show_error_details" name="failsafe_options[show_error_details]" value="1" <?php checked(1, $show_details_checked, true); ?> />
+                                            <span class="failsafe-toggle-slider"></span>
+                                        </label>
+                                        <span class="failsafe-toggle-label"><?php echo $show_details_checked ? __('Show Details', 'failsafe') : __('Hide Details', 'failsafe'); ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="failsafe-setting-row">
+                                <div class="failsafe-setting-info">
+                                    <label class="failsafe-setting-title"><?php _e('Lock plugins', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php _e('Select plugins that should be prevented from being disabled during error recovery. Caution! These plugins will not appear in recovery options.', 'failsafe'); ?></p>
+                                </div>
+                                <div class="failsafe-setting-control">
+                                    <?php
+                                    $protected_plugins = isset($options['protected_plugins']) ? $options['protected_plugins'] : array();
+                                    if (!is_array($protected_plugins)) {
+                                        $protected_plugins = array();
+                                    }
+                                    
+                                    if (!function_exists('get_plugins')) {
+                                        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+                                    }
+                                    $all_plugins = get_plugins();
+                                    ?>
+                                    <select name="failsafe_options[protected_plugins][]" multiple class="failsafe-choices-select" id="protectedPlugins" data-placeholder="<?php esc_attr_e('Select plugins to lock...', 'failsafe'); ?>">
+                                        <?php foreach ($all_plugins as $plugin_file => $plugin_data): ?>
+                                            <option value="<?php echo esc_attr($plugin_file); ?>" <?php selected(true, in_array($plugin_file, $protected_plugins)); ?>>
+                                                <?php echo esc_html($plugin_data['Name']) . ' (v' . esc_html($plugin_data['Version']) . ')'; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Management Settings Card -->
+                    <div class="failsafe-settings-card">
+                        <div class="failsafe-card-header">
+                            <h2><?php _e('Data Management', 'failsafe'); ?></h2>
+                            <p><?php _e('Configure how FailSafe handles data storage and cleanup.', 'failsafe'); ?></p>
+                        </div>
+                        <div class="failsafe-card-body">
+                            <?php 
+                            $delete_data_checked = isset($options['delete_data_on_uninstall']) ? $options['delete_data_on_uninstall'] : false;
+                            ?>
+                            <div class="failsafe-setting-row">
+                                <div class="failsafe-setting-info">
+                                    <label for="delete_data_on_uninstall" class="failsafe-setting-title"><?php _e('Delete all data on plugin uninstall', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php _e('When enabled, all FailSafe settings and error logs will be permanently deleted when the plugin is uninstalled. This cannot be undone.', 'failsafe'); ?></p>
+                                </div>
+                                <div class="failsafe-setting-control">
+                                    <div class="failsafe-toggle-wrapper">
+                                        <label class="failsafe-toggle">
+                                            <input type="checkbox" id="delete_data_on_uninstall" name="failsafe_options[delete_data_on_uninstall]" value="1" <?php checked(1, $delete_data_checked, true); ?> />
+                                            <span class="failsafe-toggle-slider"></span>
+                                        </label>
+                                        <span class="failsafe-toggle-label"><?php echo $delete_data_checked ? __('Delete Data', 'failsafe') : __('Keep Data', 'failsafe'); ?></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -350,7 +482,7 @@ class FailSafe_Admin {
         
         $table_name = $wpdb->prefix . 'failsafe_error_logs';
         
-        // Handle actions
+        // Handle dismiss action
         if (isset($_GET['action']) && isset($_GET['error_id'])) {
             $error_id = intval($_GET['error_id']);
             
@@ -433,7 +565,9 @@ class FailSafe_Admin {
     public function enqueue_admin_scripts($hook) {
         if (strpos($hook, 'failsafe') !== false) {
             wp_enqueue_style('failsafe-admin', FAILSAFE_PLUGIN_URL . 'build/style.css', array(), FAILSAFE_VERSION);
-            wp_enqueue_script('failsafe-admin', FAILSAFE_PLUGIN_URL . 'assets/admin.js', array('jquery'), FAILSAFE_VERSION, true);
+            wp_enqueue_style('choices-css', FAILSAFE_PLUGIN_URL . 'assets/choices.min.css', array(), '10.2.0');
+            wp_enqueue_script('choices-js', FAILSAFE_PLUGIN_URL . 'assets/choices.min.js', array(), '10.2.0', true);
+            wp_enqueue_script('failsafe-admin', FAILSAFE_PLUGIN_URL . 'assets/admin.js', array('jquery', 'choices-js'), FAILSAFE_VERSION, true);
             
             wp_localize_script('failsafe-admin', 'failsafe_ajax', array(
                 'ajax_url' => admin_url('admin-ajax.php'),
@@ -594,5 +728,78 @@ class FailSafe_Admin {
 
             delete_option('failsafe_recovery');
         }
+    }
+    
+    /**
+     * Download error logs as CSV file
+     */
+    private function download_error_logs() {
+        global $wpdb;
+        
+        // Clean any output buffers
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        
+        $table_name = $wpdb->prefix . 'failsafe_error_logs';
+        
+        // Get all error logs
+        $errors = $wpdb->get_results(
+            "SELECT * FROM $table_name ORDER BY error_time DESC"
+        );
+        
+        if (empty($errors)) {
+            wp_die(__('No error logs to download.', 'failsafe'));
+        }
+        
+        // Set headers for CSV download
+        $filename = 'failsafe-error-logs-' . date('Y-m-d-H-i-s') . '.csv';
+        
+        // Ensure no output has been sent
+        if (headers_sent()) {
+            wp_die(__('Headers already sent. Cannot download file.', 'failsafe'));
+        }
+        
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-cache, must-revalidate');
+        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+        header('Pragma: no-cache');
+        
+        // Open output stream
+        $output = fopen('php://output', 'w');
+        
+        // Write CSV header
+        fputcsv($output, array(
+            'ID',
+            'Error Hash',
+            'Error Type',
+            'Error Message', 
+            'Error File',
+            'Error Line',
+            'Plugin/Theme Path',
+            'Plugin/Theme Type',
+            'Error Time',
+            'Status'
+        ));
+        
+        // Write error data
+        foreach ($errors as $error) {
+            fputcsv($output, array(
+                $error->id,
+                $error->error_hash,
+                $error->error_type,
+                $error->error_message,
+                $error->error_file,
+                $error->error_line,
+                $error->plugin_theme_path,
+                $error->plugin_theme_type,
+                $error->error_time,
+                $error->status
+            ));
+        }
+        
+        fclose($output);
+        exit;
     }
 }

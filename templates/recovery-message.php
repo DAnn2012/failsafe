@@ -341,6 +341,87 @@
             border-top: 1px solid #e2e8f0;
         }
         
+        /* Error Details Accordion */
+        .error-details-accordion {
+            margin-top: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+        
+        .error-details-toggle {
+            width: 100%;
+            padding: 12px 16px;
+            background: #f1f5f9;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        
+        .error-details-toggle:hover {
+            background: #e2e8f0;
+            color: #334155;
+        }
+        
+        .toggle-icon {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .error-details-toggle.expanded .toggle-icon {
+            transform: rotate(90deg);
+        }
+        
+        .error-details-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .error-details-content.expanded {
+            max-height: 500px;
+        }
+        
+        .error-details-inner {
+            padding: 16px;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .error-details-inner h4 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .error-detail-item {
+            margin-bottom: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-all;
+        }
+        
+        .error-detail-item strong {
+            color: #374151;
+            font-weight: 600;
+            display: inline-block;
+            min-width: 70px;
+        }
+        
+        .error-detail-item:last-child {
+            margin-bottom: 0;
+        }
+
         @media (max-width: 768px) {
             .grid {
                 grid-template-columns: 1fr;
@@ -352,6 +433,19 @@
             
             .btn {
                 justify-content: center;
+            }
+            
+            .error-details-toggle {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            .error-details-inner {
+                padding: 12px;
+            }
+            
+            .error-detail-item {
+                font-size: 12px;
             }
         }
     </style>
@@ -367,6 +461,33 @@
         <div class="error-info">
             <h3>Error Source Detected</h3>
             <p>The <?= $causing_type ?> <strong><?= $causing_item ?></strong> appears to have caused this fatal error.</p>
+            
+            <?php if ($show_error_details): ?>
+                <!-- Error Details Accordion -->
+                <div class="error-details-accordion">
+                    <button class="error-details-toggle" onclick="toggleErrorDetails()" type="button">
+                        <span class="toggle-icon">▶</span>
+                        <span class="toggle-text">Show original error</span>
+                    </button>
+                    <div class="error-details-content" id="errorDetailsContent">
+                        <div class="error-details-inner">
+                            <h4>Error Details:</h4>
+                            <div class="error-detail-item">
+                                <strong>Type:</strong> <?= FailSafe_Helpers::escape_html(FailSafe_Helpers::get_error_type_name($error['type'])) ?>
+                            </div>
+                            <div class="error-detail-item">
+                                <strong>Message:</strong> <?= FailSafe_Helpers::escape_html($error['message']) ?>
+                            </div>
+                            <div class="error-detail-item">
+                                <strong>File:</strong> <?= FailSafe_Helpers::escape_html($error['file']) ?>
+                            </div>
+                            <div class="error-detail-item">
+                                <strong>Line:</strong> <?= FailSafe_Helpers::escape_html($error['line']) ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
         
@@ -584,6 +705,25 @@
             updateThemeButton();
             updateThemeCardSelection();
         });
+        
+        // Error details accordion toggle function
+        function toggleErrorDetails() {
+            const toggle = document.querySelector('.error-details-toggle');
+            const content = document.getElementById('errorDetailsContent');
+            const toggleText = document.querySelector('.toggle-text');
+            
+            if (content.classList.contains('expanded')) {
+                // Collapse
+                content.classList.remove('expanded');
+                toggle.classList.remove('expanded');
+                toggleText.textContent = 'Show original error';
+            } else {
+                // Expand
+                content.classList.add('expanded');
+                toggle.classList.add('expanded');
+                toggleText.textContent = 'Hide original error';
+            }
+        }
     </script>
 </body>
 </html>

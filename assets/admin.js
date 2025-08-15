@@ -364,4 +364,34 @@ jQuery(document).ready(function($) {
     
     // Initialize bulk action buttons state
     updateBulkActionButtons();
+    
+    // Initialize Choices.js for multiselect fields
+    if (typeof Choices !== 'undefined') {
+        const protectedPlugins = document.getElementById('protectedPlugins');
+        const recoveryRoles = document.getElementById('recoveryRoles');
+        
+        if (protectedPlugins) {
+            new Choices(protectedPlugins, {
+                removeItemButton: true,
+                searchEnabled: true,
+                placeholderValue: protectedPlugins.getAttribute('data-placeholder'),
+                classNames: {
+                    containerOuter: 'choices failsafe-choices',
+                    containerInner: 'choices__inner failsafe-choices__inner'
+                }
+            });
+        }
+        
+        if (recoveryRoles) {
+            new Choices(recoveryRoles, {
+                removeItemButton: true,
+                searchEnabled: true,
+                placeholderValue: recoveryRoles.getAttribute('data-placeholder'),
+                classNames: {
+                    containerOuter: 'choices failsafe-choices',
+                    containerInner: 'choices__inner failsafe-choices__inner'
+                }
+            });
+        }
+    }
 });
