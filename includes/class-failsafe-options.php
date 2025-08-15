@@ -60,7 +60,11 @@ class FailSafe_Options {
                 E_RECOVERABLE_ERROR => false
             ),
             'log_errors' => false,
-            'recovery_user_roles' => array('administrator')
+            'recovery_user_roles' => array('administrator'),
+            'delete_data_on_uninstall' => true,
+            'protected_plugins' => array(),
+            'admin_only_recovery' => true,
+            'show_error_details' => false
         );
     }
     

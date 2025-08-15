@@ -151,7 +151,16 @@ class FailSafe_Error_Handler {
     /**
      * Show comprehensive recovery message with all plugins and themes
      */
-    private static function show_recovery_message($error, $plugin_theme_info) {     
+    private static function show_recovery_message($error, $plugin_theme_info) {
+        // Check if admin-only recovery is enabled
+        $options = FailSafe_Options::get();
+        $admin_only_recovery = isset($options['admin_only_recovery']) ? $options['admin_only_recovery'] : false;
+        
+        // If admin-only recovery is enabled and we're not in admin area, don't show recovery interface
+        if ($admin_only_recovery && !is_admin()) {
+            return;
+        }
+        
         $failsafe_recovery = get_option('failsafe_recovery', array());
         if ( !isset($failsafe_recovery['hash']) ) {
             $error_hash = hash('sha256', $error['file'] . ':' . $error['line'] . ':' . $error['message'] . ':' . time());
@@ -170,12 +179,24 @@ class FailSafe_Error_Handler {
         $causing_type = $plugin_theme_info ? $plugin_theme_info['type'] : 'unknown';
 
         // Get all active plugins and available themes
-        $active_plugins = FailSafe_Helpers::get_active_plugins_with_names();
+        $all_active_plugins = FailSafe_Helpers::get_active_plugins_with_names();
         $available_themes = FailSafe_Helpers::get_available_themes();
         $current_theme = get_option('stylesheet');
+        
+        // Filter out protected plugins
+        $protected_plugins = isset($options['protected_plugins']) ? $options['protected_plugins'] : array();
+        $active_plugins = array();
+        foreach ($all_active_plugins as $plugin_path => $plugin_name) {
+            if (!in_array($plugin_path, $protected_plugins)) {
+                $active_plugins[$plugin_path] = $plugin_name;
+            }
+        }
 
         // Build base URL for actions
         $base_url = $current_url . (strpos($current_url, '?') !== false ? '&' : '?');
+        
+        // Check if error details should be shown
+        $show_error_details = isset($options['show_error_details']) ? $options['show_error_details'] : true;
         
         include __DIR__ . '/../templates/recovery-message.php';
     }
