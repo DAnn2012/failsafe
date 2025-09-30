@@ -23,7 +23,7 @@
     "php-errors",
     "site-recovery"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Salim Shrestha <me@salim.com.np>",
   "license": "GPL-2.0-or-later",
   "bugs": {
     "url": "https://github.com/salimshrestha98/failsafe/issues"
@@ -45,9 +45,8 @@
     "plugin_name": "FailSafe",
     "plugin_uri": "https://github.com/salimshrestha98/failsafe",
     "requires_wp": "5.0",
-    "tested_up_to": "6.4",
+    "tested_up_to": "6.8",
     "requires_php": "7.4",
-    "text_domain": "failsafe",
-    "domain_path": "/languages"
+    "text_domain": "failsafe"
   }
 }
