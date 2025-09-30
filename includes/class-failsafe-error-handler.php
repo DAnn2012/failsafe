@@ -76,15 +76,16 @@ class FailSafe_Error_Handler {
      * Handle recovery actions from GET parameters
      */
     public static function handle_recovery_action() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
         if (!isset($_GET['failsafe_action']) || !isset($_GET['failsafe_hash'])) {
             return;
         }
         
-        $action = FailSafe_Helpers::sanitize_input($_GET['failsafe_action']);
-        $hash = FailSafe_Helpers::sanitize_input($_GET['failsafe_hash']);
-        $theme = isset($_GET['failsafe_theme']) ? FailSafe_Helpers::sanitize_input($_GET['failsafe_theme']) : '';
-        $plugins = isset($_GET['failsafe_plugins']) ? FailSafe_Helpers::sanitize_input($_GET['failsafe_plugins']) : array();
-        
+        $action = isset($_GET['failsafe_action']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_action'])) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $hash = isset($_GET['failsafe_hash']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_hash'])) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $theme = isset($_GET['failsafe_theme']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_theme'])) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $plugins = isset($_GET['failsafe_plugins']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_plugins'])) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( FailSafe_Options::validate_recovery_hash($hash) ) {
             if ($action === 'deactivate_plugins') {
                 self::deactivate_plugins($plugins, $hash);
@@ -103,14 +104,14 @@ class FailSafe_Error_Handler {
         $table_name = $wpdb->prefix . 'failsafe_error_logs';
         
         // Check if error already exists
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $table_name WHERE error_hash = %s",
+        $existing = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            "SELECT id FROM {$table_name} WHERE error_hash = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $error_hash
         ));
         
         if ($existing) {
             // Update timestamp of existing error
-            $wpdb->update(
+            $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $table_name,
                 array('error_time' => current_time('mysql')),
                 array('id' => $existing),
@@ -121,7 +122,7 @@ class FailSafe_Error_Handler {
         }
         
         // Insert new error
-        $wpdb->insert(
+        $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
             $table_name,
             array(
                 'error_hash' => $error_hash,

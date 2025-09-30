@@ -55,6 +55,6 @@ class FailSafe_Updater {
         // Update the options
         update_option('failsafe_options', $updated_options);
         
-        error_log("FailSafe: Plugin updated from version {$old_version} to {$new_version}. Settings preserved and merged with new defaults.");
+        error_log("FailSafe: Plugin updated from version {$old_version} to {$new_version}. Settings preserved and merged with new defaults."); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
     }
 }

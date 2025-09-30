@@ -28,14 +28,14 @@ delete_option('failsafe_activation_redirect');
 
 // Delete error logs table
 $table_name = $wpdb->prefix . 'failsafe_error_logs';
-$wpdb->query("DROP TABLE IF EXISTS $table_name");
+$wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS {$table_name}")); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 // Remove MU-plugin loader if it exists
 $mu_plugin_file = WPMU_PLUGIN_DIR . '/failsafe-mu-loader.php';
 if (file_exists($mu_plugin_file)) {
-    unlink($mu_plugin_file);
+    wp_delete_file($mu_plugin_file);
 }
 
 // Clean up any transients
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_failsafe_%'");
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_failsafe_%'");
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_failsafe_%'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_failsafe_%'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

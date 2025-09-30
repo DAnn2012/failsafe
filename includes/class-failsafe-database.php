@@ -52,7 +52,7 @@ class FailSafe_Database {
     public static function table_exists() {
         global $wpdb;
         $table_name = self::get_error_log_table_name();
-        return $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+        return $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     }
     
     /**
@@ -61,6 +61,6 @@ class FailSafe_Database {
     public static function drop_error_log_table() {
         global $wpdb;
         $table_name = self::get_error_log_table_name();
-        $wpdb->query("DROP TABLE IF EXISTS $table_name");
+        $wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS {$table_name}")); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
     }
 }

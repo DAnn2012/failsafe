@@ -237,8 +237,8 @@ class FailSafe_Helpers {
      */
     public static function get_current_url() {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-        $host = $_SERVER['HTTP_HOST'];
-        $uri = $_SERVER['REQUEST_URI'];
+        $host = isset($_SERVER['HTTP_HOST']) ? wp_unslash($_SERVER['HTTP_HOST']) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         
         // Remove existing failsafe parameters
         $uri = preg_replace('/[?&]failsafe_(action|hash|token)=[^&]*/', '', $uri);

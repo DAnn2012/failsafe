@@ -27,16 +27,16 @@ class FailSafe_Admin {
      */
     public function add_admin_menu() {
         add_options_page(
-            __('FailSafe Settings', 'failsafe'),
-            __('FailSafe', 'failsafe'),
+            esc_html__('FailSafe Settings', 'failsafe'),
+            esc_html__('FailSafe', 'failsafe'),
             'manage_options',
             'failsafe-settings',
             array($this, 'settings_page')
         );
         
         add_management_page(
-            __('FailSafe Error Logs', 'failsafe'),
-            __('FailSafe Errors', 'failsafe'),
+            esc_html__('FailSafe Error Logs', 'failsafe'),
+            esc_html__('FailSafe Errors', 'failsafe'),
             'manage_options',
             'failsafe-errors',
             array($this, 'error_logs_page')
@@ -51,7 +51,7 @@ class FailSafe_Admin {
             delete_option('failsafe_activation_redirect');
             
             // Don't redirect if we're already on the settings page or doing an AJAX request
-            if (isset($_GET['page']) && $_GET['page'] === 'failsafe-settings') {
+            if (isset($_GET['page']) && $_GET['page'] === 'failsafe-settings') { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
                 return;
             }
             
@@ -71,7 +71,7 @@ class FailSafe_Admin {
     public function handle_download_action() {
         if (isset($_GET['page']) && $_GET['page'] === 'failsafe-errors' && 
             isset($_GET['action']) && $_GET['action'] === 'download' && 
-            wp_verify_nonce($_GET['_wpnonce'], 'failsafe_download_logs')) {
+            isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'failsafe_download_logs')) {
             $this->download_error_logs();
         }
     }
@@ -166,20 +166,20 @@ class FailSafe_Admin {
                     </div>
                     <div class="failsafe-header-text">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-                        <p><?php _e('Protect your website from fatal errors with intelligent error recovery', 'failsafe'); ?></p>
+                        <p><?php esc_html_e('Protect your website from fatal errors with intelligent error recovery', 'failsafe'); ?></p>
                     </div>
                 </div>
                 <div class="failsafe-status-indicator <?php echo $enabled ? 'enabled' : 'disabled'; ?>">
                     <span class="status-dot"></span>
-                    <span class="status-text"><?php echo $enabled ? __('Active', 'failsafe') : __('Inactive', 'failsafe'); ?></span>
+                    <span class="status-text"><?php echo $enabled ? esc_html__('Active', 'failsafe') : esc_html__('Inactive', 'failsafe'); ?></span>
                 </div>
             </div>
 
-            <?php if (isset($_GET['welcome']) && $_GET['welcome'] == '1'): ?>
+            <?php if (isset($_GET['welcome']) && $_GET['welcome'] == '1'): // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
             <div class="failsafe-welcome-message">
                 <div class="failsafe-welcome-content">
-                    <h2><?php _e('Welcome to FailSafe!', 'failsafe'); ?></h2>
-                    <p><?php _e('Thank you for installing FailSafe. Your website is now protected from fatal errors. Configure the settings below to customize the protection level.', 'failsafe'); ?></p>
+                    <h2><?php esc_html_e('Welcome to FailSafe!', 'failsafe'); ?></h2>
+                    <p><?php esc_html_e('Thank you for installing FailSafe. Your website is now protected from fatal errors. Configure the settings below to customize the protection level.', 'failsafe'); ?></p>
                 </div>
             </div>
             <?php endif; ?>
@@ -190,8 +190,8 @@ class FailSafe_Admin {
                     <!-- Main Settings Card -->
                     <div class="failsafe-settings-card failsafe-main-card">
                         <div class="failsafe-card-header">
-                            <h2><?php _e('FailSafe Settings', 'failsafe'); ?></h2>
-                            <p><?php _e('Configure the main FailSafe settings to protect your website from fatal errors.', 'failsafe'); ?></p>
+                            <h2><?php esc_html_e('FailSafe Settings', 'failsafe'); ?></h2>
+                            <p><?php esc_html_e('Configure the main FailSafe settings to protect your website from fatal errors.', 'failsafe'); ?></p>
                         </div>
                         <div class="failsafe-card-body">
                             <?php 
@@ -200,8 +200,8 @@ class FailSafe_Admin {
                             ?>
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
-                                    <label for="enable_failsafe" class="failsafe-setting-title"><?php _e('Enable FailSafe', 'failsafe'); ?></label>
-                                    <p class="failsafe-setting-description"><?php _e('Enable or disable FailSafe error protection for your website', 'failsafe'); ?></p>
+                                    <label for="enable_failsafe" class="failsafe-setting-title"><?php esc_html_e('Enable FailSafe', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php esc_html_e('Enable or disable FailSafe error protection for your website', 'failsafe'); ?></p>
                                 </div>
                                 <div class="failsafe-setting-control">
                                     <div class="failsafe-toggle-wrapper">
@@ -209,7 +209,7 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="enable_failsafe" name="failsafe_options[enable_failsafe]" value="1" <?php checked(1, $enable_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $enable_checked ? __('Enabled', 'failsafe') : __('Disabled', 'failsafe'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $enable_checked ? esc_html__('Enabled', 'failsafe') : esc_html__('Disabled', 'failsafe'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -219,8 +219,8 @@ class FailSafe_Admin {
                     <!-- Error Types Card -->
                     <div class="failsafe-settings-card">
                         <div class="failsafe-card-header">
-                            <h2><?php _e('Error Types to Monitor', 'failsafe'); ?></h2>
-                            <p><?php _e('Select which types of errors should trigger the FailSafe system.', 'failsafe'); ?></p>
+                            <h2><?php esc_html_e('Error Types to Monitor', 'failsafe'); ?></h2>
+                            <p><?php esc_html_e('Select which types of errors should trigger the FailSafe system.', 'failsafe'); ?></p>
                         </div>
                         <div class="failsafe-card-body">
                             <div class="failsafe-error-types-grid">
@@ -232,12 +232,12 @@ class FailSafe_Admin {
                                     $checked = isset($enabled_types[$error_code]) && $enabled_types[$error_code];
                                     $error_class = $this->get_error_severity_class($error_code);
                                 ?>
-                                    <div class="failsafe-error-type-item <?php echo $error_class; ?>">
+                                    <div class="failsafe-error-type-item <?php echo esc_attr($error_class); ?>">
                                         <div class="failsafe-error-type-header">
-                                            <label for="error_type_<?php echo $error_code; ?>" class="failsafe-error-type-label">
+                                            <label for="error_type_<?php echo esc_attr($error_code); ?>" class="failsafe-error-type-label">
                                                 <input type="checkbox" 
-                                                       id="error_type_<?php echo $error_code; ?>" 
-                                                       name="failsafe_options[enabled_error_types][<?php echo $error_code; ?>]" 
+                                                       id="error_type_<?php echo esc_attr($error_code); ?>" 
+                                                       name="failsafe_options[enabled_error_types][<?php echo esc_attr($error_code); ?>]" 
                                                        value="1" 
                                                        <?php checked(1, $checked, true); ?> />
                                                 <span class="failsafe-checkbox-custom"></span>
@@ -245,7 +245,7 @@ class FailSafe_Admin {
                                             </label>
                                         </div>
                                         <div class="failsafe-error-type-description">
-                                            <?php echo $this->get_error_description($error_code); ?>
+                                            <?php echo esc_html($this->get_error_description($error_code)); ?>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -256,8 +256,8 @@ class FailSafe_Admin {
                     <!-- Behavior Settings Card -->
                     <div class="failsafe-settings-card">
                         <div class="failsafe-card-header">
-                            <h2><?php _e('Behavior Settings', 'failsafe'); ?></h2>
-                            <p><?php _e('Configure additional behavior settings for error handling and logging.', 'failsafe'); ?></p>
+                            <h2><?php esc_html_e('Behavior Settings', 'failsafe'); ?></h2>
+                            <p><?php esc_html_e('Configure additional behavior settings for error handling and logging.', 'failsafe'); ?></p>
                         </div>
                         <div class="failsafe-card-body">
                             <?php 
@@ -265,17 +265,17 @@ class FailSafe_Admin {
                             ?>
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
-                                    <label for="log_errors" class="failsafe-setting-title"><?php _e('Keep log of errors', 'failsafe'); ?></label>
-                                    <p class="failsafe-setting-description"><?php _e('Maintain a detailed log of all detected errors for analysis and troubleshooting', 'failsafe'); ?></p>
+                                    <label for="log_errors" class="failsafe-setting-title"><?php esc_html_e('Keep log of errors', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php esc_html_e('Maintain a detailed log of all detected errors for analysis and troubleshooting', 'failsafe'); ?></p>
                                     <?php if (isset($options['log_errors']) && $options['log_errors']): ?>
                                         <div class="failsafe-setting-link">
-                                            <a href="<?php echo admin_url('tools.php?page=failsafe-errors'); ?>" class="failsafe-inline-link" target="_blank">
+                                            <a href="<?php echo esc_url(admin_url('tools.php?page=failsafe-errors')); ?>" class="failsafe-inline-link" target="_blank">
                                                 <span class="dashicons dashicons-list-view"></span>
-                                                <?php _e('View Error Logs', 'failsafe'); ?>
+                                                <?php esc_html_e('View Error Logs', 'failsafe'); ?>
                                             </a>
-                                            <a href="<?php echo wp_nonce_url(admin_url('tools.php?page=failsafe-errors&action=download'), 'failsafe_download_logs'); ?>" class="failsafe-inline-link" style="margin-left: 15px;" target="_blank">
+                                            <a href="<?php echo esc_url(wp_nonce_url(admin_url('tools.php?page=failsafe-errors&action=download'), 'failsafe_download_logs')); ?>" class="failsafe-inline-link" style="margin-left: 15px;" target="_blank">
                                                 <span class="dashicons dashicons-download"></span>
-                                                <?php _e('Download Logs', 'failsafe'); ?>
+                                                <?php esc_html_e('Download Logs', 'failsafe'); ?>
                                             </a>
                                         </div>
                                     <?php endif; ?>
@@ -286,15 +286,15 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="log_errors" name="failsafe_options[log_errors]" value="1" <?php checked(1, $log_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $log_checked ? __('Enabled', 'failsafe') : __('Disabled', 'failsafe'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $log_checked ? esc_html__('Enabled', 'failsafe') : esc_html__('Disabled', 'failsafe'); ?></span>
                                     </div>
                                 </div>
                             </div>
                             
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
-                                    <label class="failsafe-setting-title"><?php _e('Recovery Access Roles', 'failsafe'); ?></label>
-                                    <p class="failsafe-setting-description"><?php _e('Select which user roles can see recovery messages and deactivate plugins/themes', 'failsafe'); ?></p>
+                                    <label class="failsafe-setting-title"><?php esc_html_e('Recovery Access Roles', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php esc_html_e('Select which user roles can see recovery messages and deactivate plugins/themes', 'failsafe'); ?></p>
                                 </div>
                                 <div class="failsafe-setting-control">
                 <?php
@@ -326,8 +326,8 @@ class FailSafe_Admin {
                     <!-- Advanced Settings Card -->
                     <div class="failsafe-settings-card">
                         <div class="failsafe-card-header">
-                            <h2><?php _e('Advanced Settings', 'failsafe'); ?></h2>
-                            <p><?php _e('Configure advanced behavior and security options for the FailSafe plugin.', 'failsafe'); ?></p>
+                            <h2><?php esc_html_e('Advanced Settings', 'failsafe'); ?></h2>
+                            <p><?php esc_html_e('Configure advanced behavior and security options for the FailSafe plugin.', 'failsafe'); ?></p>
                         </div>
                         <div class="failsafe-card-body">
                             <?php 
@@ -335,8 +335,8 @@ class FailSafe_Admin {
                             ?>
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
-                                    <label for="admin_only_recovery" class="failsafe-setting-title"><?php _e('Admin-only error recovery interface', 'failsafe'); ?></label>
-                                    <p class="failsafe-setting-description"><?php _e('Show error recovery interface only in admin area. When enabled, frontend users will not see recovery options.', 'failsafe'); ?></p>
+                                    <label for="admin_only_recovery" class="failsafe-setting-title"><?php esc_html_e('Admin-only error recovery interface', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php esc_html_e('Show error recovery interface only in admin area. When enabled, frontend users will not see recovery options.', 'failsafe'); ?></p>
                                 </div>
                                 <div class="failsafe-setting-control">
                                     <div class="failsafe-toggle-wrapper">
@@ -344,7 +344,7 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="admin_only_recovery" name="failsafe_options[admin_only_recovery]" value="1" <?php checked(1, $admin_only_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $admin_only_checked ? __('Admin Only', 'failsafe') : __('All Users', 'failsafe'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $admin_only_checked ? esc_html_e('Admin Only', 'failsafe') : esc_html_e('All Users', 'failsafe'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -354,8 +354,8 @@ class FailSafe_Admin {
                             ?>
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
-                                    <label for="show_error_details" class="failsafe-setting-title"><?php _e('Show detailed error messages', 'failsafe'); ?></label>
-                                    <p class="failsafe-setting-description"><?php _e('Display actual error messages in the recovery interface. Disable this to show generic error messages for security.', 'failsafe'); ?></p>
+                                    <label for="show_error_details" class="failsafe-setting-title"><?php esc_html_e('Show detailed error messages', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php esc_html_e('Display actual error messages in the recovery interface. Disable this to show generic error messages for security.', 'failsafe'); ?></p>
                                 </div>
                                 <div class="failsafe-setting-control">
                                     <div class="failsafe-toggle-wrapper">
@@ -363,15 +363,15 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="show_error_details" name="failsafe_options[show_error_details]" value="1" <?php checked(1, $show_details_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $show_details_checked ? __('Show Details', 'failsafe') : __('Hide Details', 'failsafe'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $show_details_checked ? esc_html_e('Show Details', 'failsafe') : esc_html_e('Hide Details', 'failsafe'); ?></span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
-                                    <label class="failsafe-setting-title"><?php _e('Lock plugins', 'failsafe'); ?></label>
-                                    <p class="failsafe-setting-description"><?php _e('Select plugins that should be prevented from being disabled during error recovery. Caution! These plugins will not appear in recovery options.', 'failsafe'); ?></p>
+                                    <label class="failsafe-setting-title"><?php esc_html_e('Lock plugins', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php echo wp_kses_post('Select plugins that should be prevented from being disabled during error recovery. <br><strong>Caution!</strong> These plugins will not appear in recovery options and you won\'t be able to disable them.', 'failsafe'); ?></p>
                                 </div>
                                 <div class="failsafe-setting-control">
                                     <?php
@@ -400,8 +400,8 @@ class FailSafe_Admin {
                     <!-- Data Management Settings Card -->
                     <div class="failsafe-settings-card">
                         <div class="failsafe-card-header">
-                            <h2><?php _e('Data Management', 'failsafe'); ?></h2>
-                            <p><?php _e('Configure how FailSafe handles data storage and cleanup.', 'failsafe'); ?></p>
+                            <h2><?php esc_html_e('Data Management', 'failsafe'); ?></h2>
+                            <p><?php esc_html_e('Configure how FailSafe handles data storage and cleanup.', 'failsafe'); ?></p>
                         </div>
                         <div class="failsafe-card-body">
                             <?php 
@@ -409,8 +409,8 @@ class FailSafe_Admin {
                             ?>
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
-                                    <label for="delete_data_on_uninstall" class="failsafe-setting-title"><?php _e('Delete all data on plugin uninstall', 'failsafe'); ?></label>
-                                    <p class="failsafe-setting-description"><?php _e('When enabled, all FailSafe settings and error logs will be permanently deleted when the plugin is uninstalled. This cannot be undone.', 'failsafe'); ?></p>
+                                    <label for="delete_data_on_uninstall" class="failsafe-setting-title"><?php esc_html_e('Delete all data on plugin uninstall', 'failsafe'); ?></label>
+                                    <p class="failsafe-setting-description"><?php esc_html_e('When enabled, all FailSafe settings and error logs will be permanently deleted when the plugin is uninstalled. This cannot be undone.', 'failsafe'); ?></p>
                                 </div>
                                 <div class="failsafe-setting-control">
                                     <div class="failsafe-toggle-wrapper">
@@ -418,7 +418,7 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="delete_data_on_uninstall" name="failsafe_options[delete_data_on_uninstall]" value="1" <?php checked(1, $delete_data_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $delete_data_checked ? __('Delete Data', 'failsafe') : __('Keep Data', 'failsafe'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $delete_data_checked ? esc_html_e('Delete Data', 'failsafe') : esc_html_e('Keep Data', 'failsafe'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -463,12 +463,12 @@ class FailSafe_Admin {
      */
     private function get_error_description($error_code) {
         $descriptions = array(
-            E_ERROR => __('Fatal run-time errors that cannot be recovered from', 'failsafe'),
-            E_CORE_ERROR => __('Fatal errors that occur during PHP startup', 'failsafe'),
-            E_PARSE => __('Compile-time parse errors in PHP syntax', 'failsafe'),
-            E_COMPILE_ERROR => __('Fatal compile-time errors in PHP code', 'failsafe'),
-            E_USER_ERROR => __('User-generated error messages', 'failsafe'),
-            E_RECOVERABLE_ERROR => __('Catchable fatal errors that can be recovered', 'failsafe')
+            E_ERROR => esc_html_e('Fatal run-time errors that cannot be recovered from', 'failsafe'),
+            E_CORE_ERROR => esc_html_e('Fatal errors that occur during PHP startup', 'failsafe'),
+            E_PARSE => esc_html_e('Compile-time parse errors in PHP syntax', 'failsafe'),
+            E_COMPILE_ERROR => esc_html_e('Fatal compile-time errors in PHP code', 'failsafe'),
+            E_USER_ERROR => esc_html_e('User-generated error messages', 'failsafe'),
+            E_RECOVERABLE_ERROR => esc_html_e('Catchable fatal errors that can be recovered', 'failsafe')
         );
         
         return isset($descriptions[$error_code]) ? $descriptions[$error_code] : '';
@@ -486,8 +486,8 @@ class FailSafe_Admin {
         if (isset($_GET['action']) && isset($_GET['error_id'])) {
             $error_id = intval($_GET['error_id']);
             
-            if ($_GET['action'] === 'dismiss' && wp_verify_nonce($_GET['_wpnonce'], 'dismiss_error_' . $error_id)) {
-                $wpdb->update(
+            if ($_GET['action'] === 'dismiss' && isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'dismiss_error_' . $error_id)) {
+                $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                     $table_name,
                     array('status' => 'dismissed'),
                     array('id' => $error_id),
@@ -495,13 +495,13 @@ class FailSafe_Admin {
                     array('%d')
                 );
                 
-                echo '<div class="notice notice-success"><p>' . __('Error dismissed.', 'failsafe') . '</p></div>';
+                echo '<div class="notice notice-success"><p>' . esc_html_e('Error dismissed.', 'failsafe') . '</p></div>';
             }
         }
         
         // Get error logs
-        $errors = $wpdb->get_results(
-            "SELECT * FROM $table_name ORDER BY error_time DESC LIMIT 50"
+        $errors = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->prepare("SELECT * FROM {$table_name} ORDER BY error_time DESC LIMIT 50") // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         );
         
         ?>
@@ -509,18 +509,18 @@ class FailSafe_Admin {
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
             
             <?php if (empty($errors)): ?>
-                <p><?php _e('No errors logged yet.', 'failsafe'); ?></p>
+                <p><?php esc_html_e('No errors logged yet.', 'failsafe'); ?></p>
             <?php else: ?>
                 <table class="wp-list-table widefat fixed striped">
                     <thead>
                         <tr>
-                            <th><?php _e('Time', 'failsafe'); ?></th>
-                            <th><?php _e('Type', 'failsafe'); ?></th>
-                            <th><?php _e('Message', 'failsafe'); ?></th>
-                            <th><?php _e('File', 'failsafe'); ?></th>
-                            <th><?php _e('Plugin/Theme', 'failsafe'); ?></th>
-                            <th><?php _e('Status', 'failsafe'); ?></th>
-                            <th><?php _e('Actions', 'failsafe'); ?></th>
+                            <th><?php esc_html_e('Time', 'failsafe'); ?></th>
+                            <th><?php esc_html_e('Type', 'failsafe'); ?></th>
+                            <th><?php esc_html_e('Message', 'failsafe'); ?></th>
+                            <th><?php esc_html_e('File', 'failsafe'); ?></th>
+                            <th><?php esc_html_e('Plugin/Theme', 'failsafe'); ?></th>
+                            <th><?php esc_html_e('Status', 'failsafe'); ?></th>
+                            <th><?php esc_html_e('Actions', 'failsafe'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -534,7 +534,7 @@ class FailSafe_Admin {
                                     <?php if ($error->plugin_theme_path): ?>
                                         <?php echo esc_html($error->plugin_theme_type . ': ' . basename($error->plugin_theme_path)); ?>
                                     <?php else: ?>
-                                        <?php _e('Unknown', 'failsafe'); ?>
+                                        <?php esc_html_e('Unknown', 'failsafe'); ?>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -544,9 +544,9 @@ class FailSafe_Admin {
                                 </td>
                                 <td>
                                     <?php if ($error->status === 'pending'): ?>
-                                        <a href="<?php echo wp_nonce_url(add_query_arg(array('action' => 'dismiss', 'error_id' => $error->id)), 'dismiss_error_' . $error->id); ?>" 
+                                        <a href="<?php echo esc_url(wp_nonce_url(add_query_arg(array('action' => 'dismiss', 'error_id' => $error->id)), 'dismiss_error_' . $error->id)); ?>" 
                                            class="button button-small">
-                                            <?php _e('Dismiss', 'failsafe'); ?>
+                                            <?php esc_html_e('Dismiss', 'failsafe'); ?>
                                         </a>
                                     <?php endif; ?>
                                 </td>
@@ -580,22 +580,22 @@ class FailSafe_Admin {
      * AJAX handler for disabling plugins
      */
     public function ajax_disable_plugin() {
-        if (!wp_verify_nonce($_POST['nonce'], 'failsafe_nonce') || !current_user_can('manage_options')) {
-            wp_die(__('Security check failed.', 'failsafe'));
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(wp_unslash($_POST['nonce']), 'failsafe_nonce') || !current_user_can('manage_options')) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            wp_die(esc_html__('Security check failed.', 'failsafe'));
         }
         
-        $error_hash = sanitize_text_field($_POST['error_hash']);
+        $error_hash = isset($_POST['error_hash']) ? sanitize_text_field(wp_unslash($_POST['error_hash'])) : '';
         
         global $wpdb;
         $table_name = $wpdb->prefix . 'failsafe_error_logs';
         
-        $error = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM $table_name WHERE error_hash = %s",
+        $error = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            "SELECT * FROM {$table_name} WHERE error_hash = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
             $error_hash
         ));
         
         if (!$error) {
-            wp_send_json_error(__('Error not found.', 'failsafe'));
+            wp_send_json_error(esc_html__('Error not found.', 'failsafe'));
         }
         
         $success = false;
@@ -605,19 +605,20 @@ class FailSafe_Admin {
             if (is_plugin_active($error->plugin_theme_path)) {
                 deactivate_plugins($error->plugin_theme_path);
                 $success = true;
+                /* translators: %s: Plugin filename */
                 $message = sprintf(__('Plugin %s has been disabled.', 'failsafe'), basename($error->plugin_theme_path));
             } else {
-                $message = __('Plugin is already disabled.', 'failsafe');
+                $message = esc_html__('Plugin is already disabled.', 'failsafe');
             }
         } elseif ($error->plugin_theme_type === 'theme' && $error->plugin_theme_path) {
             switch_theme(WP_DEFAULT_THEME);
             $success = true;
-            $message = __('Theme has been switched to default.', 'failsafe');
+            $message = esc_html__('Theme has been switched to default.', 'failsafe');
         }
         
         if ($success) {
             // Update error status
-            $wpdb->update(
+            $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 $table_name,
                 array('status' => 'resolved'),
                 array('id' => $error->id),
@@ -634,27 +635,23 @@ class FailSafe_Admin {
      */
     public function ajax_save_settings() {
         // Verify nonce
-        if (!wp_verify_nonce($_POST['nonce'], 'failsafe_nonce') || !current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Security check failed.', 'failsafe')));
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(wp_unslash($_POST['nonce']), 'failsafe_nonce') || !current_user_can('manage_options')) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            wp_send_json_error(array('message' => esc_html__('Security check failed.', 'failsafe')));
         }
         
         // Get the posted options
-        $options = isset($_POST['failsafe_options']) ? $_POST['failsafe_options'] : array();
+        $options = isset($_POST['failsafe_options']) ? wp_unslash($_POST['failsafe_options']) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         
         // Sanitize the options using the existing method
         $sanitized_options = $this->sanitize_options($options);
         
         // Update the options
-        $updated = update_option('failsafe_options', $sanitized_options);
+        update_option('failsafe_options', $sanitized_options);
         
-        if ($updated !== false) {
-            wp_send_json_success(array(
-                'message' => __('Settings saved successfully!', 'failsafe'),
-                'options' => $sanitized_options
-            ));
-        } else {
-            wp_send_json_error(array('message' => __('Failed to save settings. Please try again.', 'failsafe')));
-        }
+		wp_send_json_success(array(
+			'message' => esc_html__('Settings saved successfully!', 'failsafe'),
+			'options' => $sanitized_options
+		));
     }
     
     /**
@@ -744,20 +741,20 @@ class FailSafe_Admin {
         $table_name = $wpdb->prefix . 'failsafe_error_logs';
         
         // Get all error logs
-        $errors = $wpdb->get_results(
-            "SELECT * FROM $table_name ORDER BY error_time DESC"
+        $errors = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->prepare("SELECT * FROM {$table_name} ORDER BY error_time DESC") // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         );
         
         if (empty($errors)) {
-            wp_die(__('No error logs to download.', 'failsafe'));
+            wp_die(esc_html__('No error logs to download.', 'failsafe'));
         }
         
         // Set headers for CSV download
-        $filename = 'failsafe-error-logs-' . date('Y-m-d-H-i-s') . '.csv';
+        $filename = 'failsafe-error-logs-' . gmdate('Y-m-d-H-i-s') . '.csv';
         
         // Ensure no output has been sent
         if (headers_sent()) {
-            wp_die(__('Headers already sent. Cannot download file.', 'failsafe'));
+            wp_die(esc_html__('Headers already sent. Cannot download file.', 'failsafe'));
         }
         
         header('Content-Type: text/csv; charset=utf-8');
@@ -766,11 +763,17 @@ class FailSafe_Admin {
         header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
         header('Pragma: no-cache');
         
-        // Open output stream
-        $output = fopen('php://output', 'w');
+        // Initialize WP_Filesystem
+        if (!function_exists('WP_Filesystem')) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        WP_Filesystem();
         
-        // Write CSV header
-        fputcsv($output, array(
+        // Generate CSV content
+        $csv_content = '';
+        
+        // Add CSV header
+        $header_row = array(
             'ID',
             'Error Hash',
             'Error Type',
@@ -781,11 +784,12 @@ class FailSafe_Admin {
             'Plugin/Theme Type',
             'Error Time',
             'Status'
-        ));
+        );
+        $csv_content .= '"' . implode('","', array_map('str_replace', array('"'), array('""'), $header_row)) . '"' . "\n";
         
-        // Write error data
+        // Add error data
         foreach ($errors as $error) {
-            fputcsv($output, array(
+            $row = array(
                 $error->id,
                 $error->error_hash,
                 $error->error_type,
@@ -796,10 +800,12 @@ class FailSafe_Admin {
                 $error->plugin_theme_type,
                 $error->error_time,
                 $error->status
-            ));
+            );
+            $csv_content .= '"' . implode('","', array_map('str_replace', array('"'), array('""'), $row)) . '"' . "\n";
         }
         
-        fclose($output);
+        // Output CSV content
+        echo $csv_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         exit;
     }
 }

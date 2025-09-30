@@ -460,7 +460,7 @@
         <?php if ($plugin_theme_info): ?>
         <div class="error-info">
             <h3>Error Source Detected</h3>
-            <p>The <?= $causing_type ?> <strong><?= $causing_item ?></strong> appears to have caused this fatal error.</p>
+            <p>The <?php echo esc_html($causing_type); ?> <strong><?php echo esc_html($causing_item); ?></strong> appears to have caused this fatal error.</p>
             
             <?php if ($show_error_details): ?>
                 <!-- Error Details Accordion -->
@@ -473,16 +473,16 @@
                         <div class="error-details-inner">
                             <h4>Error Details:</h4>
                             <div class="error-detail-item">
-                                <strong>Type:</strong> <?= FailSafe_Helpers::escape_html(FailSafe_Helpers::get_error_type_name($error['type'])) ?>
+                                <strong>Type:</strong> <?php echo esc_html(FailSafe_Helpers::get_error_type_name($error['type'])); ?>
                             </div>
                             <div class="error-detail-item">
-                                <strong>Message:</strong> <?= FailSafe_Helpers::escape_html($error['message']) ?>
+                                <strong>Message:</strong> <?php echo esc_html($error['message']); ?>
                             </div>
                             <div class="error-detail-item">
-                                <strong>File:</strong> <?= FailSafe_Helpers::escape_html($error['file']) ?>
+                                <strong>File:</strong> <?php echo esc_html($error['file']); ?>
                             </div>
                             <div class="error-detail-item">
-                                <strong>Line:</strong> <?= FailSafe_Helpers::escape_html($error['line']) ?>
+                                <strong>Line:</strong> <?php echo esc_html($error['line']); ?>
                             </div>
                         </div>
                     </div>
@@ -499,14 +499,14 @@
                 <?php if (!empty($active_plugins)): ?>
                 <form id="pluginForm" method="get" action="">
                     <!-- Preserve existing GET parameters -->
-                    <?php foreach ($_GET as $key => $value): ?>
+                    <?php foreach ($_GET as $key => $value): ?> <?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
                         <?php if (!in_array($key, ['failsafe_action', 'failsafe_plugins'])): ?>
-                            <input type="hidden" name="<?= FailSafe_Helpers::escape_html($key) ?>" value="<?= FailSafe_Helpers::escape_html($value) ?>" />
+                        <input type="hidden" name="<?php echo esc_attr(FailSafe_Helpers::escape_html($key)); ?>" value="<?php echo esc_attr(FailSafe_Helpers::escape_html($value)); ?>" />
                         <?php endif; ?>
                     <?php endforeach; ?>
                     
                     <input type="hidden" name="failsafe_action" value="deactivate_plugins" />
-                    <input type="hidden" name="failsafe_hash" value="<?= FailSafe_Helpers::escape_html($error_hash) ?>" />
+                    <input type="hidden" name="failsafe_hash" value="<?php echo esc_html($error_hash); ?>" />
                     
                     <div class="select-all-controls">
                         <button type="button" class="select-btn" onclick="selectAllPlugins()">Select All</button>
@@ -519,18 +519,18 @@
                     <div class="grid">
                         <?php foreach ($active_plugins as $plugin_path => $plugin_name): ?>
                             <?php if ($plugin_path !== 'failsafe/failsafe.php'): ?>
-                                <div class="card <?= ($plugin_theme_info && $plugin_theme_info['type'] === 'plugin' && $plugin_theme_info['path'] === $plugin_path) ? 'causing-error' : '' ?>">
+                                <div class="card <?php echo ($plugin_theme_info && $plugin_theme_info['type'] === 'plugin' && $plugin_theme_info['path'] === $plugin_path) ? 'causing-error' : ''; ?>">
                                     <div class="input-wrapper">
                                         <label class="custom-input">
                                             <input type="checkbox" 
                                                     name="failsafe_plugins[]" 
-                                                    value="<?= Failsafe_Helpers::escape_html($plugin_path) ?>"
-                                                    <?= ($plugin_theme_info && $plugin_theme_info['type'] === 'plugin' && $plugin_theme_info['path'] === $plugin_path) ? 'checked' : '' ?>
+                                                    value="<?php echo esc_html($plugin_path); ?>"
+                                                    <?php echo ($plugin_theme_info && $plugin_theme_info['type'] === 'plugin' && $plugin_theme_info['path'] === $plugin_path) ? 'checked' : ''; ?>
                                                     class="plugin-checkbox"
-                                                    data-causing="<?= ($plugin_theme_info && $plugin_theme_info['type'] === 'plugin' && $plugin_theme_info['path'] === $plugin_path) ? 'true' : 'false' ?>" />
+                                                    data-causing="<?php echo ($plugin_theme_info && $plugin_theme_info['type'] === 'plugin' && $plugin_theme_info['path'] === $plugin_path) ? 'true' : 'false'; ?>" />
                                             <span class="input-mark"></span>
                                         </label>
-                                        <span class="input-label item-name"><?= Failsafe_Helpers::escape_html($plugin_name) ?></span>
+                                        <span class="input-label item-name"><?php echo esc_html($plugin_name); ?></span>
                                     </div>
                                 </div>
                             <?php endif; ?>
@@ -554,21 +554,21 @@
                 <?php if (!empty($available_themes)): ?>
                 <form id="themeForm" method="get" action="">
                     <input type="hidden" name="failsafe_action" value="switch_theme" />
-                    <input type="hidden" name="failsafe_hash" value="<?= Failsafe_Helpers::escape_html($error_hash) ?>" />
+                    <input type="hidden" name="failsafe_hash" value="<?php echo esc_html($error_hash); ?>" />
                     
                     <div class="grid">
                         <?php foreach ($available_themes as $theme_slug => $theme_name): ?>
                             <?php if ($theme_slug !== $current_theme): ?>
-                            <div class="card" onclick="selectTheme('theme_<?= Failsafe_Helpers::escape_html($theme_slug) ?>')">
+                            <div class="card" onclick="selectTheme('theme_<?php echo esc_html($theme_slug); ?>')">
                                 <div class="input-wrapper">
                                     <label class="custom-input">
                                         <input type="radio" 
-                                               id="theme_<?= Failsafe_Helpers::escape_html($theme_slug) ?>" 
+                                               id="theme_<?php echo esc_html($theme_slug); ?>" 
                                                name="failsafe_theme" 
-                                               value="<?= Failsafe_Helpers::escape_html($theme_slug) ?>" />
+                                               value="<?php echo esc_html($theme_slug); ?>" />
                                         <span class="input-mark"></span>
                                     </label>
-                                    <span class="input-label item-name"><?= Failsafe_Helpers::escape_html($theme_name) ?></span>
+                                    <span class="input-label item-name"><?php echo esc_html($theme_name); ?></span>
                                 </div>
                             </div>
                             <?php endif; ?>

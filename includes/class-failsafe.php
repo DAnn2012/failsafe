@@ -52,7 +52,6 @@ class FailSafe {
      * Initialize hooks
      */
     private function init_hooks() {
-        add_action('init', array($this, 'load_textdomain'));
         add_action('wp_loaded', array(FailSafe_Updater::class, 'check_for_updates'));
     }
     
@@ -65,12 +64,5 @@ class FailSafe {
         } else {
             $this->frontend = new FailSafe_Frontend();
         }
-    }
-    
-    /**
-     * Load plugin textdomain
-     */
-    public function load_textdomain() {
-        load_plugin_textdomain('failsafe', false, dirname(FAILSAFE_PLUGIN_BASENAME) . '/languages');
     }
 }
