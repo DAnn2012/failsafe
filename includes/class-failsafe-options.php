@@ -104,8 +104,22 @@ class FailSafe_Options {
         return get_option('failsafe_recovery', array());
     }
 
-    public static function validate_recovery_hash($hash) {
+    public static function validate_recovery_hash( $hash ) {
         $recovery_options = self::get_recovery_options();
-        return isset($recovery_options['hash']) && $recovery_options['hash'] === $hash;
+
+        if ( ! isset( $recovery_options['hash'] ) || $recovery_options['hash'] !== $hash ) {
+            return false;
+        }
+
+        if ( isset( $recovery_options['expires'] ) && time() > $recovery_options['expires'] ) {
+            delete_option( 'failsafe_recovery' );
+            return false;
+        }
+
+        return true;
+    }
+
+    public static function invalidate_recovery_hash() {
+        delete_option( 'failsafe_recovery' );
     }
 }

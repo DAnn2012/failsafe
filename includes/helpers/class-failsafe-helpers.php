@@ -12,6 +12,20 @@ if (!defined('ABSPATH')) {
 class FailSafe_Helpers {
 
     /**
+     * Get plugins directory path
+     *
+     * @return string Plugins directory path with forward slashes
+     */
+    public static function get_plugins_dir() {
+        if ( defined( 'FAILSAFE_PLUGIN_DIR' ) ) {
+            // Go up one level from plugin directory to get plugins folder
+            return str_replace( '\\', '/', dirname( FAILSAFE_PLUGIN_DIR ) );
+        }
+        // Fallback: derive from ABSPATH
+        return str_replace( '\\', '/', ABSPATH . 'wp-content/plugins' );
+    }
+
+    /**
      * Detect if error is from plugin or theme
      */
     public static function detect_plugin_or_theme($file) {
@@ -20,11 +34,10 @@ class FailSafe_Helpers {
             'path' => null,
             'name' => null
         );
-        
-        // Normalize path separators
-        $file = str_replace('\\', '/', $file);
-        $plugins_path = str_replace('\\', '/', WP_PLUGIN_DIR);
-        $themes_path = str_replace('\\', '/', get_theme_root());
+
+        $file = str_replace( '\\', '/', $file );
+        $plugins_path = self::get_plugins_dir();
+        $themes_path = str_replace( '\\', '/', get_theme_root() );
         
         // Check if it's a plugin
         if (strpos($file, $plugins_path) !== false) {
@@ -123,28 +136,25 @@ class FailSafe_Helpers {
      * Get active plugins with their names
      */
     public static function get_active_plugins_with_names() {
-        $active_plugins = get_option('active_plugins', array());
+        $active_plugins     = get_option( 'active_plugins', array() );
         $plugins_with_names = array();
-        
-        foreach ($active_plugins as $plugin_file) {
-            if (defined('WP_PLUGIN_DIR')) {
-                $plugin_path = WP_PLUGIN_DIR . '/' . $plugin_file;
-            } else {
-                $plugin_path = $plugin_file;
-            }
-            
-            if (file_exists($plugin_path)) {
-                if (function_exists('get_plugin_data')) {
-                    $plugin_data = get_plugin_data($plugin_path, false, false);
-                    $plugin_name = $plugin_data['Name'] ? $plugin_data['Name'] : basename($plugin_file, '.php');
+        $plugins_dir        = self::get_plugins_dir();
+
+        foreach ( $active_plugins as $plugin_file ) {
+            $plugin_path = $plugins_dir . '/' . $plugin_file;
+
+            if ( file_exists( $plugin_path ) ) {
+                if ( function_exists( 'get_plugin_data' ) ) {
+                    $plugin_data = get_plugin_data( $plugin_path, false, false );
+                    $plugin_name = $plugin_data['Name'] ? $plugin_data['Name'] : basename( $plugin_file, '.php' );
                 } else {
-                    $plugin_name = self::get_plugin_name($plugin_path);
+                    $plugin_name = self::get_plugin_name( $plugin_path );
                 }
-                
-                $plugins_with_names[$plugin_file] = $plugin_name;
+
+                $plugins_with_names[ $plugin_file ] = $plugin_name;
             }
         }
-        
+
         return $plugins_with_names;
     }
 
@@ -233,16 +243,15 @@ class FailSafe_Helpers {
     }
     
     /**
-     * Get current URL without WordPress functions
+     * Get current URL
      */
     public static function get_current_url() {
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-        $host = isset($_SERVER['HTTP_HOST']) ? wp_unslash($_SERVER['HTTP_HOST']) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        
-        // Remove existing failsafe parameters
-        $uri = preg_replace('/[?&]failsafe_(action|hash|token)=[^&]*/', '', $uri);
-        
+        $protocol = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== $_SERVER['HTTPS'] ) ? 'https://' : 'http://';
+        $host     = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
+        $uri      = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+
+        $uri = preg_replace( '/[?&]failsafe_(action|hash|token|plugins|theme)=[^&]*/', '', $uri );
+
         return $protocol . $host . $uri;
     }
 }

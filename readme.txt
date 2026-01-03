@@ -1,7 +1,6 @@
-=== FailSafe - WordPress Fatal Error Recovery Plugin ===
+=== FailSafe – Fatal Error Recovery ===
 Contributors: salimshrestha
-Donate link: https://github.com/salimshrestha98/failsafe
-Tags: fatal error, error recovery, site recovery, plugin errors, theme errors, error handling, website protection, error monitoring, site maintenance, debugging
+Tags: fatal error, error recovery, site recovery, plugin errors, theme errors
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -9,7 +8,7 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Protect your WordPress site from fatal errors! Automatically detect & recover from plugin/theme crashes with smart error handling and instant recovery options.
+Automatically detect & recover from plugin or theme crashes with smart error handling and instant recovery options.
 
 == Description ==
 
@@ -194,10 +193,7 @@ FailSafe creates a secure custom table `wp_failsafe_error_logs` for error storag
 == Support & Documentation ==
 
 📚 **Get Help:**
-* 📖 [Complete Documentation](https://github.com/salimshrestha98/failsafe/wiki)
-* 🐛 [Report Issues](https://github.com/salimshrestha98/failsafe/issues)
-* 💬 [Community Support](https://wordpress.org/support/plugin/failsafe/)
-* 📧 Direct developer support via GitHub
+* 💬 [Community Support](https://wordpress.org/support/plugin/failsafe-fatal-error-recovery/)
 
 == Privacy & Security ==
 

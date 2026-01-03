@@ -59,8 +59,8 @@ class FailSafe_Frontend {
         <div id="failsafe-error-notice" class="failsafe-notice">
             <div class="failsafe-notice-content">
                 <div class="failsafe-notice-header">
-                    <h3><?php esc_html_e('FailSafe Error Detection', 'failsafe'); ?></h3>
-                    <button type="button" class="failsafe-notice-close" aria-label="<?php esc_attr_e('Close', 'failsafe'); ?>">
+                    <h3><?php esc_html_e('FailSafe Error Detection', 'failsafe-fatal-error-recovery'); ?></h3>
+                    <button type="button" class="failsafe-notice-close" aria-label="<?php esc_attr_e('Close', 'failsafe-fatal-error-recovery'); ?>">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -76,7 +76,7 @@ class FailSafe_Frontend {
                                         <?php 
                                         printf(
                                             /* translators: 1: Plugin/theme type, 2: Plugin/theme name */
-                                            esc_html_e('The %1$s "%2$s" has caused a fatal error.', 'failsafe'),
+                                            esc_html_e('The %1$s "%2$s" has caused a fatal error.', 'failsafe-fatal-error-recovery'),
                                             esc_html($error->plugin_theme_type),
                                             esc_html(basename($error->plugin_theme_path))
                                         ); 
@@ -94,7 +94,7 @@ class FailSafe_Frontend {
                                             <?php 
                                             printf(
                                                 /* translators: %s: Plugin/theme type */
-                                                esc_html_e('Disable %s', 'failsafe'), 
+                                                esc_html_e('Disable %s', 'failsafe-fatal-error-recovery'), 
                                                 esc_html(ucfirst($error->plugin_theme_type))
                                             ); 
                                             ?>
@@ -103,11 +103,11 @@ class FailSafe_Frontend {
                                         <button type="button" 
                                                 class="failsafe-btn failsafe-btn-secondary failsafe-dismiss-btn" 
                                                 data-error-hash="<?php echo esc_attr($error->error_hash); ?>">
-                                            <?php esc_html_e('Dismiss', 'failsafe'); ?>
+                                            <?php esc_html_e('Dismiss', 'failsafe-fatal-error-recovery'); ?>
                                         </button>
                                     </div>
                                 <?php else: ?>
-                                    <p><?php esc_html_e('An unknown error has occurred.', 'failsafe'); ?></p>
+                                    <p><?php esc_html_e('An unknown error has occurred.', 'failsafe-fatal-error-recovery'); ?></p>
                                     <p class="failsafe-error-message">
                                         <em><?php echo esc_html(wp_trim_words($error->error_message, 15)); ?></em>
                                     </p>
@@ -116,7 +116,7 @@ class FailSafe_Frontend {
                                         <button type="button" 
                                                 class="failsafe-btn failsafe-btn-secondary failsafe-dismiss-btn" 
                                                 data-error-hash="<?php echo esc_attr($error->error_hash); ?>">
-                                            <?php esc_html_e('Dismiss', 'failsafe'); ?>
+                                            <?php esc_html_e('Dismiss', 'failsafe-fatal-error-recovery'); ?>
                                         </button>
                                     </div>
                                 <?php endif; ?>
@@ -130,13 +130,13 @@ class FailSafe_Frontend {
                         <?php 
                         printf(
                             /* translators: %s: Plugin name */
-                            esc_html_e('This notice is shown by %s to help you recover from fatal errors.', 'failsafe'),
+                            esc_html_e('This notice is shown by %s to help you recover from fatal errors.', 'failsafe-fatal-error-recovery'),
                             '<strong>FailSafe</strong>'
                         ); 
                         ?>
                         <?php if (current_user_can('manage_options')): ?>
-                            <a href="<?php echo esc_url(admin_url('options-general.php?page=failsafe-settings')); ?>">
-                                <?php esc_html_e('Configure settings', 'failsafe'); ?>
+                            <a href="<?php echo esc_url(admin_url('options-general.php?page=failsafe-fatal-error-recovery')); ?>">
+                                <?php esc_html_e('Configure settings', 'failsafe-fatal-error-recovery'); ?>
                             </a>
                         <?php endif; ?>
                     </p>
@@ -160,9 +160,9 @@ class FailSafe_Frontend {
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('failsafe_frontend_nonce'),
                 'strings' => array(
-                    'processing' => esc_html_e('Processing...', 'failsafe'),
-                    'error' => esc_html_e('An error occurred. Please try again.', 'failsafe'),
-                    'success' => esc_html_e('Action completed successfully.', 'failsafe')
+                    'processing' => esc_html_e('Processing...', 'failsafe-fatal-error-recovery'),
+                    'error' => esc_html_e('An error occurred. Please try again.', 'failsafe-fatal-error-recovery'),
+                    'success' => esc_html_e('Action completed successfully.', 'failsafe-fatal-error-recovery')
                 )
             ));
         }
@@ -173,8 +173,8 @@ class FailSafe_Frontend {
      */
     public function ajax_disable_plugin_frontend() {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-        if (!isset($_POST['nonce']) || !wp_verify_nonce(wp_unslash($_POST['nonce']), 'failsafe_frontend_nonce')) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            wp_die(esc_html__('Security check failed.', 'failsafe'));
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'failsafe_frontend_nonce')) {
+            wp_die(esc_html__('Security check failed.', 'failsafe-fatal-error-recovery'));
         }
         $error_hash = isset($_POST['error_hash']) ? sanitize_text_field(wp_unslash($_POST['error_hash'])) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -189,7 +189,7 @@ class FailSafe_Frontend {
         ));
         
         if (!$error) {
-            wp_send_json_error(esc_html__('Error not found or already processed.', 'failsafe'));
+            wp_send_json_error(esc_html__('Error not found or already processed.', 'failsafe-fatal-error-recovery'));
         }
         
         $success = false;
@@ -201,20 +201,20 @@ class FailSafe_Frontend {
                 $success = true;
                 $message = sprintf(
                     /* translators: %s: Plugin filename */
-                    esc_html__('Plugin "%s" has been disabled successfully.', 'failsafe'), 
+                    esc_html__('Plugin "%s" has been disabled successfully.', 'failsafe-fatal-error-recovery'), 
                     basename($error->plugin_theme_path)
                 );
                 
                 // Log the action
                 error_log("FailSafe: Disabled plugin {$error->plugin_theme_path} due to fatal error"); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             } else {
-                $message = esc_html__('Plugin is already disabled.', 'failsafe');
+                $message = esc_html__('Plugin is already disabled.', 'failsafe-fatal-error-recovery');
                 $success = true;
             }
         } elseif ($error->plugin_theme_type === 'theme' && $error->plugin_theme_path) {
             switch_theme(WP_DEFAULT_THEME);
             $success = true;
-            $message = esc_html__('Theme has been switched to default successfully.', 'failsafe');
+            $message = esc_html__('Theme has been switched to default successfully.', 'failsafe-fatal-error-recovery');
             
             // Log the action
             error_log("FailSafe: Switched theme due to fatal error in {$error->plugin_theme_path}"); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -238,8 +238,8 @@ class FailSafe_Frontend {
      * AJAX handler for dismissing errors from frontend
      */
     public function ajax_dismiss_error_frontend() {
-        if (!isset($_POST['nonce']) || !wp_verify_nonce(wp_unslash($_POST['nonce']), 'failsafe_frontend_nonce')) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-            wp_die(esc_html__('Security check failed.', 'failsafe'));
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'failsafe_frontend_nonce')) {
+            wp_die(esc_html__('Security check failed.', 'failsafe-fatal-error-recovery'));
         }
         
         $error_hash = isset($_POST['error_hash']) ? sanitize_text_field(wp_unslash($_POST['error_hash'])) : '';
@@ -256,9 +256,9 @@ class FailSafe_Frontend {
         );
         
         if ($result !== false) {
-            wp_send_json_success(array('message' => esc_html__('Error dismissed successfully.', 'failsafe')));
+            wp_send_json_success(array('message' => esc_html__('Error dismissed successfully.', 'failsafe-fatal-error-recovery')));
         } else {
-            wp_send_json_error(esc_html__('Failed to dismiss error.', 'failsafe'));
+            wp_send_json_error(esc_html__('Failed to dismiss error.', 'failsafe-fatal-error-recovery'));
         }
     }
 }

@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: FailSafe
- * Description: Advanced fatal error recovery system that catches fatal errors and provides safe recovery options.
+ * Plugin Name: FailSafe - Fatal Error Recovery
+ * Description: Automatically detect & recover from plugin or theme crashes with smart error handling and instant recovery options.
  * Version: 1.0.0
  * Author: Salim Shrestha
  * Requires at least: 5.0
@@ -9,7 +9,7 @@
  * Requires PHP: 7.4
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: failsafe
+ * Text Domain: failsafe-fatal-error-recovery
  */
 
 // Prevent direct access
@@ -17,8 +17,15 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!class_exists('FailSafe_Loader') && file_exists(WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php')) {
-    require_once WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php';
+// Define plugin file constant early for use throughout the plugin
+if ( ! defined( 'FAILSAFE_PLUGIN_FILE' ) ) {
+    define( 'FAILSAFE_PLUGIN_FILE', __FILE__ );
+}
+
+// Load the plugin loader using proper path functions
+$failsafe_loader_path = plugin_dir_path( __FILE__ ) . 'includes/class-failsafe-loader.php';
+if ( ! class_exists( 'FailSafe_Loader' ) && file_exists( $failsafe_loader_path ) ) {
+    require_once $failsafe_loader_path;
 }
 
 /**

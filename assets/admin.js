@@ -294,7 +294,7 @@ jQuery(document).ready(function($) {
     });
     
     // Auto-refresh error logs every 30 seconds if on error logs page
-    if (window.location.href.indexOf('failsafe-errors') !== -1) {
+    if (window.location.href.indexOf('failsafe-fatal-error-recovery-errors') !== -1) {
         setInterval(function() {
             // Only refresh if there are pending errors
             if ($('.status-pending').length > 0) {

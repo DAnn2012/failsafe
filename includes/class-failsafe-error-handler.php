@@ -31,8 +31,12 @@ class FailSafe_Error_Handler {
      * Private constructor to prevent direct instantiation
      */
     private function __construct() {
-        if (!class_exists('FailSafe_Loader') && file_exists(WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php')) {
-            require_once WP_PLUGIN_DIR . '/failsafe/includes/class-failsafe-loader.php';
+        $loader_path = defined( 'FAILSAFE_PLUGIN_DIR' )
+            ? FAILSAFE_PLUGIN_DIR . 'includes/class-failsafe-loader.php'
+            : dirname( __FILE__ ) . '/class-failsafe-loader.php';
+
+        if ( ! class_exists( 'FailSafe_Loader' ) && file_exists( $loader_path ) ) {
+            require_once $loader_path;
         }
 
         register_shutdown_function(array(__CLASS__, 'handle_fatal_error'));
@@ -71,26 +75,33 @@ class FailSafe_Error_Handler {
         
         self::show_recovery_message($error, $plugin_theme_info);
     }
-    
+
     /**
      * Handle recovery actions from GET parameters
+     *
+     * Security note: This uses hash-based verification instead of nonces because:
+     * 1. This runs at muplugins_loaded before WordPress user/session systems are available
+     * 2. The hash is cryptographically random (SHA-256 with random component)
+     * 3. The hash expires after 1 hour for additional security
+     * 4. The hash is invalidated after successful use
      */
     public static function handle_recovery_action() {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-        if (!isset($_GET['failsafe_action']) || !isset($_GET['failsafe_hash'])) {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Hash-based auth used for emergency recovery
+        if ( ! isset( $_GET['failsafe_action'] ) || ! isset( $_GET['failsafe_hash'] ) ) {
             return;
         }
-        
-        $action = isset($_GET['failsafe_action']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_action'])) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $hash = isset($_GET['failsafe_hash']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_hash'])) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $theme = isset($_GET['failsafe_theme']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_theme'])) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $plugins = isset($_GET['failsafe_plugins']) ? FailSafe_Helpers::sanitize_input(wp_unslash($_GET['failsafe_plugins'])) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-        if ( FailSafe_Options::validate_recovery_hash($hash) ) {
-            if ($action === 'deactivate_plugins') {
-                self::deactivate_plugins($plugins, $hash);
-            } elseif ($action === 'switch_theme') {
-                self::switch_theme($theme);
+
+        $action  = isset( $_GET['failsafe_action'] ) ? sanitize_key( wp_unslash( $_GET['failsafe_action'] ) ) : '';
+        $hash    = isset( $_GET['failsafe_hash'] ) ? sanitize_text_field( wp_unslash( $_GET['failsafe_hash'] ) ) : '';
+        $theme   = isset( $_GET['failsafe_theme'] ) ? sanitize_file_name( wp_unslash( $_GET['failsafe_theme'] ) ) : '';
+        $plugins = isset( $_GET['failsafe_plugins'] ) ? array_map( 'sanitize_text_field', wp_unslash( (array) $_GET['failsafe_plugins'] ) ) : array();
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+        if ( FailSafe_Options::validate_recovery_hash( $hash ) ) {
+            if ( 'deactivate_plugins' === $action ) {
+                self::deactivate_plugins( $plugins, $hash );
+            } elseif ( 'switch_theme' === $action ) {
+                self::switch_theme( $theme );
             }
         }
     }
@@ -162,13 +173,14 @@ class FailSafe_Error_Handler {
             return;
         }
         
-        $failsafe_recovery = get_option('failsafe_recovery', array());
-        if ( !isset($failsafe_recovery['hash']) ) {
-            $error_hash = hash('sha256', $error['file'] . ':' . $error['line'] . ':' . $error['message'] . ':' . time());
-            $failsafe_recovery = $plugin_theme_info ? $plugin_theme_info : array('type' => 'unknown', 'name' => 'Unknown', 'path' => '');
-            $failsafe_recovery['hash'] = $error_hash;
+        $failsafe_recovery = get_option( 'failsafe_recovery', array() );
+        if ( ! isset( $failsafe_recovery['hash'] ) || ( isset( $failsafe_recovery['expires'] ) && time() > $failsafe_recovery['expires'] ) ) {
+            $error_hash        = hash( 'sha256', $error['file'] . ':' . $error['line'] . ':' . $error['message'] . ':' . time() . ':' . wp_rand() );
+            $failsafe_recovery = $plugin_theme_info ? $plugin_theme_info : array( 'type' => 'unknown', 'name' => 'Unknown', 'path' => '' );
+            $failsafe_recovery['hash']    = $error_hash;
+            $failsafe_recovery['expires'] = time() + HOUR_IN_SECONDS;
 
-            update_option('failsafe_recovery', $failsafe_recovery);
+            update_option( 'failsafe_recovery', $failsafe_recovery );
         } else {
             $error_hash = $failsafe_recovery['hash'];
         }
@@ -176,7 +188,7 @@ class FailSafe_Error_Handler {
         $current_url = FailSafe_Helpers::get_current_url();
 
         // Prepare variables for comprehensive recovery template
-        $causing_item = $plugin_theme_info ? FailSafe_Helpers::escape_html($plugin_theme_info['name']) : 'Unknown Component';
+        $causing_item = $plugin_theme_info ? esc_html( $plugin_theme_info['name'] ) : 'Unknown Component';
         $causing_type = $plugin_theme_info ? $plugin_theme_info['type'] : 'unknown';
 
         // Get all active plugins and available themes
@@ -198,7 +210,8 @@ class FailSafe_Error_Handler {
         
         // Check if error details should be shown
         $show_error_details = isset($options['show_error_details']) ? $options['show_error_details'] : true;
-        
+
+        // Note: Assets are loaded inline in the template because wp_enqueue is unavailable during fatal errors.
         include __DIR__ . '/../templates/recovery-message.php';
     }
     
@@ -259,17 +272,17 @@ class FailSafe_Error_Handler {
     /**
      * Deactivate multiple plugins
      */
-    private static function deactivate_plugins($plugins, $hash) {
-        if (!is_array($plugins) || empty($plugins)) {
+    private static function deactivate_plugins( $plugins, $hash ) {
+        if ( ! is_array( $plugins ) || empty( $plugins ) ) {
             return;
         }
-        
-        $active_plugins = get_option('active_plugins', array());
+
+        $active_plugins      = get_option( 'active_plugins', array() );
         $deactivated_plugins = array();
-        
-        foreach ($plugins as $plugin_file) {
-            $plugin_file = FailSafe_Helpers::sanitize_input($plugin_file);
-            if (in_array($plugin_file, $active_plugins)) {
+
+        foreach ( $plugins as $plugin_file ) {
+            $plugin_file = sanitize_text_field( $plugin_file );
+            if ( in_array( $plugin_file, $active_plugins, true ) ) {
                 $deactivated_plugins[] = $plugin_file;
             }
         }
