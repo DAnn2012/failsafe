@@ -463,12 +463,12 @@ class FailSafe_Admin {
      */
     private function get_error_description($error_code) {
         $descriptions = array(
-            E_ERROR => esc_html_e('Fatal run-time errors that cannot be recovered from', 'failsafe-fatal-error-recovery'),
-            E_CORE_ERROR => esc_html_e('Fatal errors that occur during PHP startup', 'failsafe-fatal-error-recovery'),
-            E_PARSE => esc_html_e('Compile-time parse errors in PHP syntax', 'failsafe-fatal-error-recovery'),
-            E_COMPILE_ERROR => esc_html_e('Fatal compile-time errors in PHP code', 'failsafe-fatal-error-recovery'),
-            E_USER_ERROR => esc_html_e('User-generated error messages', 'failsafe-fatal-error-recovery'),
-            E_RECOVERABLE_ERROR => esc_html_e('Catchable fatal errors that can be recovered', 'failsafe-fatal-error-recovery')
+            E_ERROR => esc_html__('Fatal run-time errors that cannot be recovered from', 'failsafe-fatal-error-recovery'),
+            E_CORE_ERROR => esc_html__('Fatal errors that occur during PHP startup', 'failsafe-fatal-error-recovery'),
+            E_PARSE => esc_html__('Compile-time parse errors in PHP syntax', 'failsafe-fatal-error-recovery'),
+            E_COMPILE_ERROR => esc_html__('Fatal compile-time errors in PHP code', 'failsafe-fatal-error-recovery'),
+            E_USER_ERROR => esc_html__('User-generated error messages', 'failsafe-fatal-error-recovery'),
+            E_RECOVERABLE_ERROR => esc_html__('Catchable fatal errors that can be recovered', 'failsafe-fatal-error-recovery')
         );
         
         return isset($descriptions[$error_code]) ? $descriptions[$error_code] : '';
