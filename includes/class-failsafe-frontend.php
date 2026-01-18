@@ -160,9 +160,9 @@ class FailSafe_Frontend {
                 'ajax_url' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('failsafe_frontend_nonce'),
                 'strings' => array(
-                    'processing' => esc_html_e('Processing...', 'failsafe-fatal-error-recovery'),
-                    'error' => esc_html_e('An error occurred. Please try again.', 'failsafe-fatal-error-recovery'),
-                    'success' => esc_html_e('Action completed successfully.', 'failsafe-fatal-error-recovery')
+                    'processing' => esc_html__('Processing...', 'failsafe-fatal-error-recovery'),
+                    'error' => esc_html__('An error occurred. Please try again.', 'failsafe-fatal-error-recovery'),
+                    'success' => esc_html__('Action completed successfully.', 'failsafe-fatal-error-recovery')
                 )
             ));
         }
