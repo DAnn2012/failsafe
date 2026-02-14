@@ -479,30 +479,27 @@ class FailSafe_Admin {
      */
     public function error_logs_page() {
         global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        // Handle dismiss action
+
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
         if (isset($_GET['action']) && isset($_GET['error_id'])) {
             $error_id = intval($_GET['error_id']);
-            
+
             if ($_GET['action'] === 'dismiss' && isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'dismiss_error_' . $error_id)) {
                 $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                    $table_name,
+                    $wpdb->prefix . 'failsafe_error_logs',
                     array('status' => 'dismissed'),
                     array('id' => $error_id),
                     array('%s'),
                     array('%d')
                 );
-                
-                echo '<div class="notice notice-success"><p>' . esc_html_e('Error dismissed.', 'failsafe-fatal-error-recovery') . '</p></div>';
+
+                echo '<div class="notice notice-success"><p>' . esc_html__('Error dismissed.', 'failsafe-fatal-error-recovery') . '</p></div>';
             }
         }
-        
-        // Get error logs
-        $errors = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->prepare("SELECT * FROM {$table_name} ORDER BY error_time DESC LIMIT 50") // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $errors = $wpdb->get_results( "SELECT * FROM `{$table_name}` ORDER BY error_time DESC LIMIT 50" );
         
         ?>
         <div class="wrap">
@@ -583,16 +580,14 @@ class FailSafe_Admin {
         if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'failsafe_nonce') || !current_user_can('manage_options')) {
             wp_die(esc_html__('Security check failed.', 'failsafe-fatal-error-recovery'));
         }
-        
+
         $error_hash = isset($_POST['error_hash']) ? sanitize_text_field(wp_unslash($_POST['error_hash'])) : '';
-        
+
         global $wpdb;
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        $error = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            "SELECT * FROM {$table_name} WHERE error_hash = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            $error_hash
-        ));
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $error = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_name}` WHERE error_hash = %s", $error_hash ) );
         
         if (!$error) {
             wp_send_json_error(esc_html__('Error not found.', 'failsafe-fatal-error-recovery'));
@@ -737,13 +732,11 @@ class FailSafe_Admin {
         if (ob_get_level()) {
             ob_end_clean();
         }
-        
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        // Get all error logs
-        $errors = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->prepare("SELECT * FROM {$table_name} ORDER BY error_time DESC") // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        );
+
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $errors = $wpdb->get_results( "SELECT * FROM `{$table_name}` ORDER BY error_time DESC" );
         
         if (empty($errors)) {
             wp_die(esc_html__('No error logs to download.', 'failsafe-fatal-error-recovery'));

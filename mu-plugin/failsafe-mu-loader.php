@@ -21,8 +21,8 @@ $failsafe_handler_file = $failsafe_plugin_dir . 'includes/class-failsafe-error-h
 $failsafe_main_file    = 'failsafe-fatal-error-recovery/failsafe.php';
 
 if ( file_exists( $failsafe_handler_file ) ) {
-    $active_plugins = get_option( 'active_plugins', array() );
-    if ( in_array( $failsafe_main_file, $active_plugins, true ) ) {
+    $failsafe_active_plugins = get_option( 'active_plugins', array() );
+    if ( in_array( $failsafe_main_file, $failsafe_active_plugins, true ) ) {
         if ( ! defined( 'FAILSAFE_PLUGIN_DIR' ) ) {
             define( 'FAILSAFE_PLUGIN_DIR', $failsafe_plugin_dir );
         }

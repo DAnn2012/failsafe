@@ -1,8 +1,8 @@
-=== FailSafe – Fatal Error Recovery ===
+=== FailSafe - Fatal Error Recovery ===
 Contributors: salimshrestha
 Tags: fatal error, error recovery, site recovery, plugin errors, theme errors
 Requires at least: 5.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
@@ -210,3 +210,13 @@ FailSafe creates a secure custom table `wp_failsafe_error_logs` for error storag
 * Error messages (technical details only)
 
 **Purpose:** All logged data is used exclusively for error recovery and site maintenance.
+
+== Third-Party Libraries ==
+
+This plugin includes the following third-party libraries:
+
+**Choices.js** - v10.2.0
+* Purpose: Provides accessible dropdown/select UI for plugin settings
+* License: MIT
+* Source Code: https://github.com/Choices-js/Choices
+* Files: assets/choices.min.js, assets/choices.min.css

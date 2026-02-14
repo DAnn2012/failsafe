@@ -31,13 +31,12 @@ class FailSafe_Frontend {
         if (!isset($options['show_frontend_notice']) || !$options['show_frontend_notice']) {
             return;
         }
-        
+
         global $wpdb;
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        $pending_errors = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->prepare("SELECT * FROM {$table_name} WHERE status = %s ORDER BY error_time DESC LIMIT 5", 'pending') // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        );
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $pending_errors = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_name}` WHERE status = %s ORDER BY error_time DESC LIMIT 5", 'pending' ) );
         
         if (!empty($pending_errors)) {
             add_action('wp_footer', array($this, 'display_error_notice'));
@@ -178,15 +177,12 @@ class FailSafe_Frontend {
         }
         $error_hash = isset($_POST['error_hash']) ? sanitize_text_field(wp_unslash($_POST['error_hash'])) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
-        
+
         global $wpdb;
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        $error = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            "SELECT * FROM {$table_name} WHERE error_hash = %s AND status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            $error_hash,
-            'pending'
-        ));
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $error = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_name}` WHERE error_hash = %s AND status = %s", $error_hash, 'pending' ) );
         
         if (!$error) {
             wp_send_json_error(esc_html__('Error not found or already processed.', 'failsafe-fatal-error-recovery'));

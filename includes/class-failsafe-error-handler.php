@@ -79,11 +79,35 @@ class FailSafe_Error_Handler {
     /**
      * Handle recovery actions from GET parameters
      *
-     * Security note: This uses hash-based verification instead of nonces because:
-     * 1. This runs at muplugins_loaded before WordPress user/session systems are available
-     * 2. The hash is cryptographically random (SHA-256 with random component)
-     * 3. The hash expires after 1 hour for additional security
-     * 4. The hash is invalidated after successful use
+     * SECURITY IMPLEMENTATION:
+     * This function intentionally does NOT use WordPress nonces or capability checks because:
+     *
+     * 1. EXECUTION CONTEXT: Runs at 'muplugins_loaded' hook (priority 1), before WordPress
+     *    initializes user sessions, authentication, or the nonce system. During a fatal error,
+     *    WordPress core may be partially broken, making standard security unavailable.
+     *
+     * 2. HASH-BASED AUTHENTICATION: Uses cryptographic SHA-256 hash combining:
+     *    - Error details (type, message, file, line)
+     *    - Random component generated at error time
+     *    - Stored in database for validation
+     *    This provides security without requiring WordPress auth systems.
+     *
+     * 3. HASH PROPERTIES:
+     *    - Cryptographically secure (SHA-256)
+     *    - Unique per error occurrence
+     *    - Cannot be predicted or forged
+     *    - Validated against database before any action
+     *
+     * 4. EMERGENCY RECOVERY CONTEXT: This is an emergency recovery system. If a site has
+     *    a fatal error, the admin NEEDS access to recovery even if WordPress auth is broken.
+     *    The hash provides sufficient security for this emergency use case.
+     *
+     * Alternative approaches considered and why they don't work:
+     * - WordPress nonces: Not available before user session initialization
+     * - current_user_can(): User system not loaded during fatal error recovery
+     * - Login requirement: Site may be completely broken, admin locked out
+     *
+     * @link https://developer.wordpress.org/reference/hooks/muplugins_loaded/
      */
     public static function handle_recovery_action() {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Hash-based auth used for emergency recovery
@@ -111,14 +135,11 @@ class FailSafe_Error_Handler {
      */
     private static function log_error($error_hash, $error, $plugin_theme_info) {
         global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        // Check if error already exists
-        $existing = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            "SELECT id FROM {$table_name} WHERE error_hash = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            $error_hash
-        ));
+
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM `{$table_name}` WHERE error_hash = %s", $error_hash ) );
         
         if ($existing) {
             // Update timestamp of existing error
