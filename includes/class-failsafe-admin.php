@@ -69,8 +69,9 @@ class FailSafe_Admin {
      * Handle download action early before any output
      */
     public function handle_download_action() {
-        if (isset($_GET['page']) && $_GET['page'] === 'failsafe-fatal-error-recovery-errors' && 
-            isset($_GET['action']) && $_GET['action'] === 'download' && 
+        if (isset($_GET['page']) && $_GET['page'] === 'failsafe-fatal-error-recovery-errors' &&
+            isset($_GET['action']) && $_GET['action'] === 'download' &&
+            current_user_can('manage_options') &&
             isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'failsafe_download_logs')) {
             $this->download_error_logs();
         }
@@ -114,7 +115,7 @@ class FailSafe_Admin {
             $sanitized['recovery_user_roles'] = array();
             
             foreach ($options['recovery_user_roles'] as $role) {
-                if (in_array($role, $all_roles)) {
+                if (in_array($role, $all_roles, true)) {
                     $sanitized['recovery_user_roles'][] = sanitize_text_field($role);
                 }
             }
@@ -169,13 +170,13 @@ class FailSafe_Admin {
                         <p><?php esc_html_e('Protect your website from fatal errors with intelligent error recovery', 'failsafe-fatal-error-recovery'); ?></p>
                     </div>
                 </div>
-                <div class="failsafe-status-indicator <?php echo $enabled ? 'enabled' : 'disabled'; ?>">
+                <div class="failsafe-status-indicator <?php echo esc_attr( $enabled ? 'enabled' : 'disabled' ); ?>">
                     <span class="status-dot"></span>
                     <span class="status-text"><?php echo $enabled ? esc_html__('Active', 'failsafe-fatal-error-recovery') : esc_html__('Inactive', 'failsafe-fatal-error-recovery'); ?></span>
                 </div>
             </div>
 
-            <?php if (isset($_GET['welcome']) && $_GET['welcome'] == '1'): // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+            <?php if (isset($_GET['welcome']) && '1' === sanitize_text_field( wp_unslash( $_GET['welcome'] ) ) ): // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
             <div class="failsafe-welcome-message">
                 <div class="failsafe-welcome-content">
                     <h2><?php esc_html_e('Welcome to FailSafe!', 'failsafe-fatal-error-recovery'); ?></h2>
@@ -308,7 +309,7 @@ class FailSafe_Admin {
                                     
                                     echo '<select name="failsafe_options[recovery_user_roles][]" multiple class="failsafe-choices-select" id="recoveryRoles" data-placeholder="' . esc_attr__('Select user roles...', 'failsafe-fatal-error-recovery') . '">';
                                     foreach ($all_roles as $role_key => $role_info) {
-                                        $selected = in_array($role_key, $selected_roles);
+                                        $selected = in_array($role_key, $selected_roles, true);
                                         printf(
                                             '<option value="%s" %s>%s</option>',
                                             esc_attr($role_key),
@@ -344,7 +345,7 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="admin_only_recovery" name="failsafe_options[admin_only_recovery]" value="1" <?php checked(1, $admin_only_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $admin_only_checked ? esc_html_e('Admin Only', 'failsafe-fatal-error-recovery') : esc_html_e('All Users', 'failsafe-fatal-error-recovery'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $admin_only_checked ? esc_html__('Admin Only', 'failsafe-fatal-error-recovery') : esc_html__('All Users', 'failsafe-fatal-error-recovery'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -363,7 +364,7 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="show_error_details" name="failsafe_options[show_error_details]" value="1" <?php checked(1, $show_details_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $show_details_checked ? esc_html_e('Show Details', 'failsafe-fatal-error-recovery') : esc_html_e('Hide Details', 'failsafe-fatal-error-recovery'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $show_details_checked ? esc_html__('Show Details', 'failsafe-fatal-error-recovery') : esc_html__('Hide Details', 'failsafe-fatal-error-recovery'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -371,7 +372,7 @@ class FailSafe_Admin {
                             <div class="failsafe-setting-row">
                                 <div class="failsafe-setting-info">
                                     <label class="failsafe-setting-title"><?php esc_html_e('Lock plugins', 'failsafe-fatal-error-recovery'); ?></label>
-                                    <p class="failsafe-setting-description"><?php echo wp_kses_post('Select plugins that should be prevented from being disabled during error recovery. <br><strong>Caution!</strong> These plugins will not appear in recovery options and you won\'t be able to disable them.', 'failsafe-fatal-error-recovery'); ?></p>
+                                    <p class="failsafe-setting-description"><?php echo wp_kses_post( __( 'Select plugins that should be prevented from being disabled during error recovery. <br><strong>Caution!</strong> These plugins will not appear in recovery options and you won\'t be able to disable them.', 'failsafe-fatal-error-recovery' ) ); ?></p>
                                 </div>
                                 <div class="failsafe-setting-control">
                                     <?php
@@ -387,7 +388,7 @@ class FailSafe_Admin {
                                     ?>
                                     <select name="failsafe_options[protected_plugins][]" multiple class="failsafe-choices-select" id="protectedPlugins" data-placeholder="<?php esc_attr_e('Select plugins to lock...', 'failsafe-fatal-error-recovery'); ?>">
                                         <?php foreach ($all_plugins as $plugin_file => $plugin_data): ?>
-                                            <option value="<?php echo esc_attr($plugin_file); ?>" <?php selected(true, in_array($plugin_file, $protected_plugins)); ?>>
+                                            <option value="<?php echo esc_attr($plugin_file); ?>" <?php selected(true, in_array($plugin_file, $protected_plugins, true)); ?>>
                                                 <?php echo esc_html($plugin_data['Name']) . ' (v' . esc_html($plugin_data['Version']) . ')'; ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -418,7 +419,7 @@ class FailSafe_Admin {
                                             <input type="checkbox" id="delete_data_on_uninstall" name="failsafe_options[delete_data_on_uninstall]" value="1" <?php checked(1, $delete_data_checked, true); ?> />
                                             <span class="failsafe-toggle-slider"></span>
                                         </label>
-                                        <span class="failsafe-toggle-label"><?php echo $delete_data_checked ? esc_html_e('Delete Data', 'failsafe-fatal-error-recovery') : esc_html_e('Keep Data', 'failsafe-fatal-error-recovery'); ?></span>
+                                        <span class="failsafe-toggle-label"><?php echo $delete_data_checked ? esc_html__('Delete Data', 'failsafe-fatal-error-recovery') : esc_html__('Keep Data', 'failsafe-fatal-error-recovery'); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -463,12 +464,12 @@ class FailSafe_Admin {
      */
     private function get_error_description($error_code) {
         $descriptions = array(
-            E_ERROR => esc_html_e('Fatal run-time errors that cannot be recovered from', 'failsafe-fatal-error-recovery'),
-            E_CORE_ERROR => esc_html_e('Fatal errors that occur during PHP startup', 'failsafe-fatal-error-recovery'),
-            E_PARSE => esc_html_e('Compile-time parse errors in PHP syntax', 'failsafe-fatal-error-recovery'),
-            E_COMPILE_ERROR => esc_html_e('Fatal compile-time errors in PHP code', 'failsafe-fatal-error-recovery'),
-            E_USER_ERROR => esc_html_e('User-generated error messages', 'failsafe-fatal-error-recovery'),
-            E_RECOVERABLE_ERROR => esc_html_e('Catchable fatal errors that can be recovered', 'failsafe-fatal-error-recovery')
+            E_ERROR => esc_html__('Fatal run-time errors that cannot be recovered from', 'failsafe-fatal-error-recovery'),
+            E_CORE_ERROR => esc_html__('Fatal errors that occur during PHP startup', 'failsafe-fatal-error-recovery'),
+            E_PARSE => esc_html__('Compile-time parse errors in PHP syntax', 'failsafe-fatal-error-recovery'),
+            E_COMPILE_ERROR => esc_html__('Fatal compile-time errors in PHP code', 'failsafe-fatal-error-recovery'),
+            E_USER_ERROR => esc_html__('User-generated error messages', 'failsafe-fatal-error-recovery'),
+            E_RECOVERABLE_ERROR => esc_html__('Catchable fatal errors that can be recovered', 'failsafe-fatal-error-recovery')
         );
         
         return isset($descriptions[$error_code]) ? $descriptions[$error_code] : '';
@@ -482,10 +483,12 @@ class FailSafe_Admin {
 
         $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce verified inside the conditional.
         if (isset($_GET['action']) && isset($_GET['error_id'])) {
-            $error_id = intval($_GET['error_id']);
+            $error_id = absint( $_GET['error_id'] );
+            $action   = sanitize_key( wp_unslash( $_GET['action'] ) );
 
-            if ($_GET['action'] === 'dismiss' && isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'dismiss_error_' . $error_id)) {
+            if ('dismiss' === $action && current_user_can('manage_options') && isset($_GET['_wpnonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'dismiss_error_' . $error_id)) {
                 $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                     $wpdb->prefix . 'failsafe_error_logs',
                     array('status' => 'dismissed'),
@@ -601,7 +604,7 @@ class FailSafe_Admin {
                 deactivate_plugins($error->plugin_theme_path);
                 $success = true;
                 /* translators: %s: Plugin filename */
-                $message = sprintf(__('Plugin %s has been disabled.', 'failsafe-fatal-error-recovery'), basename($error->plugin_theme_path));
+                $message = sprintf(esc_html__('Plugin %s has been disabled.', 'failsafe-fatal-error-recovery'), basename($error->plugin_theme_path));
             } else {
                 $message = esc_html__('Plugin is already disabled.', 'failsafe-fatal-error-recovery');
             }
@@ -684,15 +687,17 @@ class FailSafe_Admin {
                 }
                 
                 if (count($deactivated_plugin_names) === 1) {
-                    $message = sprintf('Plugin "%s" has been successfully deactivated.', $deactivated_plugin_names[0]);
+                    /* translators: %s: Plugin name */
+                    $message = sprintf(__('Plugin "%s" has been successfully deactivated.', 'failsafe-fatal-error-recovery'), $deactivated_plugin_names[0]);
                 } else {
-                    $message = sprintf('The following plugins have been successfully deactivated: %s', implode(', ', $deactivated_plugin_names));
+                    /* translators: %s: Comma-separated list of plugin names */
+                    $message = sprintf(__('The following plugins have been successfully deactivated: %s', 'failsafe-fatal-error-recovery'), implode(', ', $deactivated_plugin_names));
                 }
-            } 
+            }
             // Check if theme was switched
             elseif (isset($failsafe_recovery['switched_to'])) {
                 $theme_name = $failsafe_recovery['switched_to'];
-                
+
                 // Try to get the actual theme name if possible
                 if (function_exists('wp_get_theme')) {
                     $theme = wp_get_theme($failsafe_recovery['switched_to']);
@@ -700,12 +705,14 @@ class FailSafe_Admin {
                         $theme_name = $theme->get('Name');
                     }
                 }
-                
-                $message = sprintf('Theme has been successfully switched to "%s".', $theme_name);
+
+                /* translators: %s: Theme name */
+                $message = sprintf(__('Theme has been successfully switched to "%s".', 'failsafe-fatal-error-recovery'), $theme_name);
             }
             // Fallback to original behavior for other recovery methods
             elseif (isset($failsafe_recovery['type']) && isset($failsafe_recovery['name'])) {
-                $message = sprintf('The %s %s has been successfully disabled.', $failsafe_recovery['type'], $failsafe_recovery['name']);
+                /* translators: 1: Component type (plugin/theme), 2: Component name */
+                $message = sprintf(__('The %1$s %2$s has been successfully disabled.', 'failsafe-fatal-error-recovery'), $failsafe_recovery['type'], $failsafe_recovery['name']);
             }
             
             if (!empty($message)) {
@@ -750,11 +757,11 @@ class FailSafe_Admin {
             wp_die(esc_html__('Headers already sent. Cannot download file.', 'failsafe-fatal-error-recovery'));
         }
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Cache-Control: no-cache, must-revalidate');
-        header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
-        header('Pragma: no-cache');
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
+        header( 'Cache-Control: no-cache, must-revalidate' );
+        header( 'Expires: Mon, 26 Jul 1997 05:00:00 GMT' );
+        header( 'Pragma: no-cache' );
         
         // Initialize WP_Filesystem
         if (!function_exists('WP_Filesystem')) {
@@ -765,23 +772,23 @@ class FailSafe_Admin {
         // Generate CSV content
         $csv_content = '';
         
-        // Add CSV header
+        // Add CSV header.
         $header_row = array(
             'ID',
             'Error Hash',
             'Error Type',
-            'Error Message', 
+            'Error Message',
             'Error File',
             'Error Line',
             'Plugin/Theme Path',
             'Plugin/Theme Type',
             'Error Time',
-            'Status'
+            'Status',
         );
-        $csv_content .= '"' . implode('","', array_map('str_replace', array('"'), array('""'), $header_row)) . '"' . "\n";
-        
-        // Add error data
-        foreach ($errors as $error) {
+        $csv_content .= '"' . implode( '","', array_map( array( $this, 'escape_csv_field' ), $header_row ) ) . '"' . "\n";
+
+        // Add error data.
+        foreach ( $errors as $error ) {
             $row = array(
                 $error->id,
                 $error->error_hash,
@@ -792,13 +799,23 @@ class FailSafe_Admin {
                 $error->plugin_theme_path,
                 $error->plugin_theme_type,
                 $error->error_time,
-                $error->status
+                $error->status,
             );
-            $csv_content .= '"' . implode('","', array_map('str_replace', array('"'), array('""'), $row)) . '"' . "\n";
+            $csv_content .= '"' . implode( '","', array_map( array( $this, 'escape_csv_field' ), $row ) ) . '"' . "\n";
         }
         
-        // Output CSV content
-        echo $csv_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        // Output CSV content.
+        echo $csv_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSV file download, not HTML output.
         exit;
+    }
+
+    /**
+     * Escape a value for CSV output by doubling any embedded quotes.
+     *
+     * @param string $field The field value to escape.
+     * @return string Escaped field value.
+     */
+    private function escape_csv_field( $field ) {
+        return str_replace( '"', '""', (string) $field );
     }
 }

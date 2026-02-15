@@ -21,8 +21,8 @@ class FailSafe_Helpers {
             // Go up one level from plugin directory to get plugins folder
             return str_replace( '\\', '/', dirname( FAILSAFE_PLUGIN_DIR ) );
         }
-        // Fallback: derive from ABSPATH
-        return str_replace( '\\', '/', ABSPATH . 'wp-content/plugins' );
+        // Fallback: use WP_PLUGIN_DIR for proper path resolution.
+        return str_replace( '\\', '/', WP_PLUGIN_DIR );
     }
 
     /**
@@ -86,11 +86,11 @@ class FailSafe_Helpers {
             $plugin_dir = dirname($plugin_dir);
         }
         
-        // Now scan that directory for all *.php files and check for plugin headers
-        $php_files = glob($plugin_dir . '/*.php');
+        // Now scan that directory for all *.php files and check for plugin headers.
+        $php_files = glob( $plugin_dir . '/*.php' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- glob() is safe for local directory scanning.
         if (is_array($php_files)) {
             foreach ($php_files as $php_file) {
-                $content = file_get_contents($php_file);
+                $content = file_get_contents( $php_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local plugin file header; WP_Filesystem unavailable during fatal error recovery.
                 if (preg_match('/Plugin Name:/i', $content)) {
                     return $php_file;
                 }
@@ -175,7 +175,7 @@ class FailSafe_Helpers {
             // Fallback method for when wp_get_themes is not available
             $themes_dir = get_theme_root();
             if (is_dir($themes_dir)) {
-                $theme_dirs = scandir($themes_dir);
+                $theme_dirs = scandir( $themes_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- scandir() is safe for local theme directory listing.
                 foreach ($theme_dirs as $dir) {
                     if ($dir !== '.' && $dir !== '..' && is_dir($themes_dir . '/' . $dir)) {
                         $style_css = $themes_dir . '/' . $dir . '/style.css';
@@ -195,7 +195,7 @@ class FailSafe_Helpers {
      * Get theme name from style.css file
      */
     public static function get_theme_name_from_style($style_file) {
-        $content = file_get_contents($style_file);
+        $content = file_get_contents( $style_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local theme file for name detection.
         if (preg_match('/Theme Name:\s*(.+)/i', $content, $matches)) {
             return trim($matches[1]);
         }
@@ -206,7 +206,7 @@ class FailSafe_Helpers {
      * Get plugin name from plugin file
      */
     public static function get_plugin_name($plugin_path) {
-        $content = file_get_contents($plugin_path);
+        $content = file_get_contents( $plugin_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local plugin file for name detection; WP_Filesystem unavailable during fatal error recovery.
         if (preg_match('/Plugin Name:\s*(.+)/i', $content, $matches)) {
             return trim($matches[1]);
         }
@@ -246,7 +246,8 @@ class FailSafe_Helpers {
      * Get current URL
      */
     public static function get_current_url() {
-        $protocol = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== $_SERVER['HTTPS'] ) ? 'https://' : 'http://';
+        $https    = isset( $_SERVER['HTTPS'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTPS'] ) ) : '';
+        $protocol = ( ! empty( $https ) && 'off' !== $https ) ? 'https://' : 'http://';
         $host     = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
         $uri      = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 

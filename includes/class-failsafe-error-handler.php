@@ -209,7 +209,7 @@ class FailSafe_Error_Handler {
         $current_url = FailSafe_Helpers::get_current_url();
 
         // Prepare variables for comprehensive recovery template
-        $causing_item = $plugin_theme_info ? esc_html( $plugin_theme_info['name'] ) : 'Unknown Component';
+        $causing_item = $plugin_theme_info ? esc_html( $plugin_theme_info['name'] ) : esc_html__( 'Unknown Component', 'failsafe-fatal-error-recovery' );
         $causing_type = $plugin_theme_info ? $plugin_theme_info['type'] : 'unknown';
 
         // Get all active plugins and available themes
@@ -221,7 +221,7 @@ class FailSafe_Error_Handler {
         $protected_plugins = isset($options['protected_plugins']) ? $options['protected_plugins'] : array();
         $active_plugins = array();
         foreach ($all_active_plugins as $plugin_path => $plugin_name) {
-            if (!in_array($plugin_path, $protected_plugins)) {
+            if (!in_array($plugin_path, $protected_plugins, true)) {
                 $active_plugins[$plugin_path] = $plugin_name;
             }
         }
@@ -273,21 +273,24 @@ class FailSafe_Error_Handler {
                     delete_option("theme_mods_$current_stylesheet");
                 }
                 
-                // Update recovery info
+                // Update recovery info and invalidate hash to prevent reuse.
+                $failsafe_recovery = get_option( 'failsafe_recovery', array() );
                 $failsafe_recovery['recovered'] = true;
                 $failsafe_recovery['switched_to'] = $theme_slug;
                 $failsafe_recovery['recovery_method'] = 'manual_db_switch';
-                
+                unset( $failsafe_recovery['hash'], $failsafe_recovery['expires'] );
+                update_option( 'failsafe_recovery', $failsafe_recovery );
+
                 // Redirect to admin to complete the theme switch
                 $redirect_url = admin_url();
 
             }
         }
 
-        update_option('failsafe_recovery', $failsafe_recovery);
-        
-        header('Location: ' . $redirect_url);
-        exit;
+        if ( $redirect_url ) {
+            header( 'Location: ' . esc_url_raw( $redirect_url ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Cannot use wp_safe_redirect() at muplugins_loaded; WordPress redirect functions not yet available.
+            exit;
+        }
     }
 
     /**
@@ -318,17 +321,18 @@ class FailSafe_Error_Handler {
                 update_option('active_plugins', $remaining_plugins);
             }
             
-            // Update recovery info
+            // Update recovery info and invalidate hash to prevent reuse.
             $failsafe_recovery = get_option('failsafe_recovery', array());
             $failsafe_recovery['recovered'] = true;
             $failsafe_recovery['deactivated_plugins'] = $deactivated_plugins;
             $failsafe_recovery['recovery_method'] = 'multiple_plugin_deactivation';
+            unset( $failsafe_recovery['hash'], $failsafe_recovery['expires'] );
             update_option('failsafe_recovery', $failsafe_recovery);
         }
         
-        // Redirect to plugins page
-        $redirect_url = admin_url('plugins.php');
-        header('Location: ' . $redirect_url);
+        // Redirect to plugins page.
+        $redirect_url = admin_url( 'plugins.php' );
+        header( 'Location: ' . esc_url_raw( $redirect_url ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Cannot use wp_safe_redirect() at muplugins_loaded; WordPress redirect functions not yet available.
         exit;
     }
 }

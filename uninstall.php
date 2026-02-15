@@ -1,7 +1,7 @@
 <?php
 /**
  * FailSafe Uninstall Script
- * 
+ *
  * This file is called when the plugin is uninstalled (deleted).
  * It will clean up all plugin data if the setting is enabled.
  */
@@ -12,8 +12,8 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 }
 
 // Check if user wants to delete data on uninstall
-$options = get_option('failsafe_options', array());
-if (!isset($options['delete_data_on_uninstall']) || !$options['delete_data_on_uninstall']) {
+$failsafe_options = get_option('failsafe_options', array());
+if (!isset($failsafe_options['delete_data_on_uninstall']) || !$failsafe_options['delete_data_on_uninstall']) {
     // User doesn't want to delete data, exit
     return;
 }
@@ -27,15 +27,18 @@ delete_option('failsafe_recovery');
 delete_option('failsafe_activation_redirect');
 
 // Delete error logs table
-$table_name = $wpdb->prefix . 'failsafe_error_logs';
-$wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS {$table_name}")); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+$failsafe_table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$wpdb->query( "DROP TABLE IF EXISTS `{$failsafe_table_name}`" );
 
 // Remove MU-plugin loader if it exists
-$mu_plugin_file = WPMU_PLUGIN_DIR . '/failsafe-mu-loader.php';
-if (file_exists($mu_plugin_file)) {
-    wp_delete_file($mu_plugin_file);
+$failsafe_mu_plugin_file = WPMU_PLUGIN_DIR . '/failsafe-mu-loader.php';
+if (file_exists($failsafe_mu_plugin_file)) {
+    wp_delete_file($failsafe_mu_plugin_file);
 }
 
 // Clean up any transients
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_failsafe_%'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_failsafe_%'"); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( '_transient_failsafe_' ) . '%' ) );
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( '_transient_timeout_failsafe_' ) . '%' ) );

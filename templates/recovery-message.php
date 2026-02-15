@@ -18,6 +18,10 @@
  *    - Site may be completely broken, admin needs recovery access
  *    - Hash provides sufficient security for emergency recovery (SHA-256, unique, validated)
  *
+ * 4. TRANSLATIONS: Uses __() wrappers for i18n readiness. Note that plugin textdomain
+ *    may not be loaded at muplugins_loaded, so strings may display in English during
+ *    recovery. This is acceptable for an emergency recovery interface.
+ *
  * This is an emergency recovery system designed to work even when WordPress core is broken.
  *
  * @package FailSafe
@@ -38,7 +42,7 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fatal Error Recovery</title>
+    <title><?php esc_html_e( 'Fatal Error Recovery', 'failsafe-fatal-error-recovery' ); ?></title>
     <style type="text/css">
     <?php
 	/**
@@ -47,7 +51,7 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
 	 * loading system may not be available. Source: assets/recovery.css
 	 */
 	if ( file_exists( $failsafe_css_file ) ) {
-		readfile( $failsafe_css_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		readfile( $failsafe_css_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Emergency recovery template; WP_Filesystem unavailable during fatal errors.
 	}
 	?>
     </style>
@@ -55,36 +59,48 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
 <body>
     <div class="recovery-container">
         <div class="header">
-            <h1>Fatal Error Recovery</h1>
-            <p>A Fatal Error has been detected. Use the options below to recover your site.</p>
+            <h1><?php esc_html_e( 'Fatal Error Recovery', 'failsafe-fatal-error-recovery' ); ?></h1>
+            <p><?php esc_html_e( 'A Fatal Error has been detected. Use the options below to recover your site.', 'failsafe-fatal-error-recovery' ); ?></p>
         </div>
 
         <?php if ( $plugin_theme_info ) : ?>
         <div class="error-info">
-            <h3>Error Source Detected</h3>
-            <p>The <?php echo esc_html( $causing_type ); ?> <strong><?php echo esc_html( $causing_item ); ?></strong> appears to have caused this fatal error.</p>
+            <h3><?php esc_html_e( 'Error Source Detected', 'failsafe-fatal-error-recovery' ); ?></h3>
+            <p>
+                <?php
+                echo wp_kses(
+                    sprintf(
+                        /* translators: 1: Component type (plugin/theme), 2: Component name wrapped in <strong> tags */
+                        __( 'The %1$s %2$s appears to have caused this fatal error.', 'failsafe-fatal-error-recovery' ),
+                        esc_html( $causing_type ),
+                        '<strong>' . esc_html( $causing_item ) . '</strong>'
+                    ),
+                    array( 'strong' => array() )
+                );
+                ?>
+            </p>
 
             <?php if ( $show_error_details ) : ?>
                 <!-- Error Details Accordion -->
                 <div class="error-details-accordion">
                     <button class="error-details-toggle" onclick="toggleErrorDetails()" type="button">
                         <span class="toggle-icon">&#9654;</span>
-                        <span class="toggle-text">Show original error</span>
+                        <span class="toggle-text"><?php esc_html_e( 'Show original error', 'failsafe-fatal-error-recovery' ); ?></span>
                     </button>
                     <div class="error-details-content" id="errorDetailsContent">
                         <div class="error-details-inner">
-                            <h4>Error Details:</h4>
+                            <h4><?php esc_html_e( 'Error Details:', 'failsafe-fatal-error-recovery' ); ?></h4>
                             <div class="error-detail-item">
-                                <strong>Type:</strong> <?php echo esc_html( FailSafe_Helpers::get_error_type_name( $error['type'] ) ); ?>
+                                <strong><?php esc_html_e( 'Type:', 'failsafe-fatal-error-recovery' ); ?></strong> <?php echo esc_html( FailSafe_Helpers::get_error_type_name( $error['type'] ) ); ?>
                             </div>
                             <div class="error-detail-item">
-                                <strong>Message:</strong> <?php echo esc_html( $error['message'] ); ?>
+                                <strong><?php esc_html_e( 'Message:', 'failsafe-fatal-error-recovery' ); ?></strong> <?php echo esc_html( $error['message'] ); ?>
                             </div>
                             <div class="error-detail-item">
-                                <strong>File:</strong> <?php echo esc_html( $error['file'] ); ?>
+                                <strong><?php esc_html_e( 'File:', 'failsafe-fatal-error-recovery' ); ?></strong> <?php echo esc_html( $error['file'] ); ?>
                             </div>
                             <div class="error-detail-item">
-                                <strong>Line:</strong> <?php echo esc_html( $error['line'] ); ?>
+                                <strong><?php esc_html_e( 'Line:', 'failsafe-fatal-error-recovery' ); ?></strong> <?php echo esc_html( $error['line'] ); ?>
                             </div>
                         </div>
                     </div>
@@ -96,7 +112,7 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
         <div class="content">
             <!-- Plugins Section -->
             <div class="section plugins-section">
-                <h2 class="section-title">Deactivate Plugins</h2>
+                <h2 class="section-title"><?php esc_html_e( 'Deactivate Plugins', 'failsafe-fatal-error-recovery' ); ?></h2>
 
                 <?php if ( ! empty( $active_plugins ) ) : ?>
                 <form id="pluginForm" method="get" action="">
@@ -104,10 +120,10 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
                     <input type="hidden" name="failsafe_hash" value="<?php echo esc_attr( $error_hash ); ?>" />
 
                     <div class="select-all-controls">
-                        <button type="button" class="select-btn" onclick="selectAllPlugins()">Select All</button>
-                        <button type="button" class="select-btn" onclick="selectNonePlugins()">Select None</button>
+                        <button type="button" class="select-btn" onclick="selectAllPlugins()"><?php esc_html_e( 'Select All', 'failsafe-fatal-error-recovery' ); ?></button>
+                        <button type="button" class="select-btn" onclick="selectNonePlugins()"><?php esc_html_e( 'Select None', 'failsafe-fatal-error-recovery' ); ?></button>
                         <?php if ( $plugin_theme_info && 'plugin' === $plugin_theme_info['type'] ) : ?>
-                        <button type="button" class="select-btn" onclick="selectCausingPlugin()">Select Causing Plugin Only</button>
+                        <button type="button" class="select-btn" onclick="selectCausingPlugin()"><?php esc_html_e( 'Select Causing Plugin Only', 'failsafe-fatal-error-recovery' ); ?></button>
                         <?php endif; ?>
                     </div>
 
@@ -117,15 +133,15 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
                                 <?php
                                 $failsafe_is_causing = $plugin_theme_info && 'plugin' === $plugin_theme_info['type'] && $plugin_theme_info['path'] === $failsafe_plugin_path;
                                 ?>
-                                <div class="card <?php echo $failsafe_is_causing ? 'causing-error' : ''; ?>">
+                                <div class="card <?php echo esc_attr( $failsafe_is_causing ? 'causing-error' : '' ); ?>">
                                     <div class="input-wrapper">
                                         <label class="custom-input">
                                             <input type="checkbox"
                                                     name="failsafe_plugins[]"
                                                     value="<?php echo esc_attr( $failsafe_plugin_path ); ?>"
-                                                    <?php echo $failsafe_is_causing ? 'checked' : ''; ?>
+                                                    <?php checked( $failsafe_is_causing ); ?>
                                                     class="plugin-checkbox"
-                                                    data-causing="<?php echo $failsafe_is_causing ? 'true' : 'false'; ?>" />
+                                                    data-causing="<?php echo esc_attr( $failsafe_is_causing ? 'true' : 'false' ); ?>" />
                                             <span class="input-mark"></span>
                                         </label>
                                         <span class="input-label item-name"><?php echo esc_html( $failsafe_plugin_name ); ?></span>
@@ -136,18 +152,18 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
                     </div>
                 </form>
                 <?php else : ?>
-                <p style="color: #718096; font-style: italic;">No active plugins found.</p>
+                <p style="color: #718096; font-style: italic;"><?php esc_html_e( 'No active plugins found.', 'failsafe-fatal-error-recovery' ); ?></p>
                 <?php endif; ?>
                 <?php if ( ! empty( $active_plugins ) ) : ?>
                     <button type="button" class="btn btn-danger" onclick="deactivateSelectedPlugins()" id="deactivateBtn" disabled>
-                        Deactivate Selected Plugins
+                        <?php esc_html_e( 'Deactivate Selected Plugins', 'failsafe-fatal-error-recovery' ); ?>
                     </button>
                 <?php endif; ?>
             </div>
 
             <!-- Themes Section -->
             <div class="section themes-section">
-                <h2 class="section-title">Switch Theme</h2>
+                <h2 class="section-title"><?php esc_html_e( 'Switch Theme', 'failsafe-fatal-error-recovery' ); ?></h2>
 
                 <?php if ( ! empty( $available_themes ) ) : ?>
                 <form id="themeForm" method="get" action="">
@@ -174,18 +190,27 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
                     </div>
                 </form>
                 <?php else : ?>
-                <p style="color: #718096; font-style: italic;">No alternative themes available.</p>
+                <p style="color: #718096; font-style: italic;"><?php esc_html_e( 'No alternative themes available.', 'failsafe-fatal-error-recovery' ); ?></p>
                 <?php endif; ?>
                 <?php if ( ! empty( $available_themes ) ) : ?>
                     <button type="button" class="btn btn-success" onclick="switchSelectedTheme()" id="switchThemeBtn" disabled>
-                        Switch to Selected Theme
+                        <?php esc_html_e( 'Switch to Selected Theme', 'failsafe-fatal-error-recovery' ); ?>
                     </button>
                 <?php endif; ?>
             </div>
         </div>
 
         <div class="footer-info">
-            This recovery interface is provided by the <strong>FailSafe</strong> plugin to help you recover from fatal errors.
+            <?php
+            echo wp_kses(
+                sprintf(
+                    /* translators: %s: Plugin name wrapped in <strong> tags */
+                    __( 'This recovery interface is provided by the %s plugin to help you recover from fatal errors.', 'failsafe-fatal-error-recovery' ),
+                    '<strong>FailSafe</strong>'
+                ),
+                array( 'strong' => array() )
+            );
+            ?>
         </div>
     </div>
 
@@ -197,7 +222,7 @@ $failsafe_js_file    = $failsafe_assets_dir . 'recovery.js';
 	 * loading system may not be available. Source: assets/recovery.js
 	 */
 	if ( file_exists( $failsafe_js_file ) ) {
-		readfile( $failsafe_js_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		readfile( $failsafe_js_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Emergency recovery template; WP_Filesystem unavailable during fatal errors.
 	}
 	?>
     </script>

@@ -51,11 +51,20 @@ class FailSafe_Activator {
         $source = FAILSAFE_PLUGIN_DIR . 'mu-plugin/failsafe-mu-loader.php';
         
         if (file_exists($source)) {
-            $copy_result = copy($source, $destination);
+            global $wp_filesystem;
+            if ( empty( $wp_filesystem ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+                WP_Filesystem();
+            }
+
+            if ( $wp_filesystem ) {
+                $copy_result = $wp_filesystem->copy( $source, $destination, true );
+            } else {
+                $copy_result = copy( $source, $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- Fallback when WP_Filesystem is unavailable.
+            }
+
             if (!$copy_result) {
                 error_log('FailSafe: Failed to copy MU-plugin loader to mu-plugins directory'); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            } else {
-                error_log('FailSafe: Successfully installed MU-plugin loader'); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             }
         } else {
             error_log('FailSafe: MU-plugin loader source file not found at: ' . $source); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -109,14 +118,15 @@ class FailSafe_Activator {
      * Delete mu-plugin loader
      */
     public static function delete_mu_plugin_loader() {
-        // Remove mu-plugin loader
+        // Remove mu-plugin loader.
         $mu_plugin_file = WPMU_PLUGIN_DIR . '/failsafe-mu-loader.php';
-        if (file_exists($mu_plugin_file)) {
-            $delete_result = wp_delete_file($mu_plugin_file);
-            if ($delete_result) {
-                error_log('FailSafe: Successfully removed MU-plugin loader'); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        if ( file_exists( $mu_plugin_file ) ) {
+            wp_delete_file( $mu_plugin_file );
+
+            if ( ! file_exists( $mu_plugin_file ) ) {
+                error_log( 'FailSafe: Successfully removed MU-plugin loader' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             } else {
-                error_log('FailSafe: Failed to remove MU-plugin loader'); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+                error_log( 'FailSafe: Failed to remove MU-plugin loader' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             }
         }
     }

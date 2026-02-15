@@ -15,8 +15,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Derive plugin directory from ABSPATH to avoid using WP_PLUGIN_DIR constant directly.
-$failsafe_plugin_dir   = ABSPATH . 'wp-content/plugins/failsafe-fatal-error-recovery/';
+// Use WP_PLUGIN_DIR for proper path resolution (supports custom plugin directories).
+$failsafe_plugin_dir   = WP_PLUGIN_DIR . '/failsafe-fatal-error-recovery/';
 $failsafe_handler_file = $failsafe_plugin_dir . 'includes/class-failsafe-error-handler.php';
 $failsafe_main_file    = 'failsafe-fatal-error-recovery/failsafe.php';
 
@@ -27,7 +27,7 @@ if ( file_exists( $failsafe_handler_file ) ) {
             define( 'FAILSAFE_PLUGIN_DIR', $failsafe_plugin_dir );
         }
         if ( ! defined( 'FAILSAFE_PLUGIN_URL' ) ) {
-            define( 'FAILSAFE_PLUGIN_URL', content_url( 'plugins/failsafe-fatal-error-recovery/' ) );
+            define( 'FAILSAFE_PLUGIN_URL', plugins_url( '/', $failsafe_plugin_dir . 'failsafe.php' ) );
         }
         require_once $failsafe_handler_file;
     }
