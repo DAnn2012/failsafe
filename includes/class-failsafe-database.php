@@ -61,6 +61,7 @@ class FailSafe_Database {
     public static function drop_error_log_table() {
         global $wpdb;
         $table_name = self::get_error_log_table_name();
-        $wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS {$table_name}")); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $wpdb->query( "DROP TABLE IF EXISTS `" . esc_sql( $table_name ) . "`" );
     }
 }

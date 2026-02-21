@@ -17,9 +17,7 @@ class FailSafe_Frontend {
         add_action('wp_head', array($this, 'check_pending_errors'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_scripts'));
         add_action('wp_ajax_failsafe_disable_plugin_frontend', array($this, 'ajax_disable_plugin_frontend'));
-        add_action('wp_ajax_nopriv_failsafe_disable_plugin_frontend', array($this, 'ajax_disable_plugin_frontend'));
         add_action('wp_ajax_failsafe_dismiss_error_frontend', array($this, 'ajax_dismiss_error_frontend'));
-        add_action('wp_ajax_nopriv_failsafe_dismiss_error_frontend', array($this, 'ajax_dismiss_error_frontend'));
     }
     
     /**
@@ -31,13 +29,12 @@ class FailSafe_Frontend {
         if (!isset($options['show_frontend_notice']) || !$options['show_frontend_notice']) {
             return;
         }
-        
+
         global $wpdb;
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        $pending_errors = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->prepare("SELECT * FROM {$table_name} WHERE status = %s ORDER BY error_time DESC LIMIT 5", 'pending') // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        );
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $pending_errors = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table_name}` WHERE status = %s ORDER BY error_time DESC LIMIT 5", 'pending' ) );
         
         if (!empty($pending_errors)) {
             add_action('wp_footer', array($this, 'display_error_notice'));
@@ -76,7 +73,7 @@ class FailSafe_Frontend {
                                         <?php 
                                         printf(
                                             /* translators: 1: Plugin/theme type, 2: Plugin/theme name */
-                                            esc_html_e('The %1$s "%2$s" has caused a fatal error.', 'failsafe-fatal-error-recovery'),
+                                            esc_html__('The %1$s "%2$s" has caused a fatal error.', 'failsafe-fatal-error-recovery'),
                                             esc_html($error->plugin_theme_type),
                                             esc_html(basename($error->plugin_theme_path))
                                         ); 
@@ -94,7 +91,7 @@ class FailSafe_Frontend {
                                             <?php 
                                             printf(
                                                 /* translators: %s: Plugin/theme type */
-                                                esc_html_e('Disable %s', 'failsafe-fatal-error-recovery'), 
+                                                esc_html__('Disable %s', 'failsafe-fatal-error-recovery'),
                                                 esc_html(ucfirst($error->plugin_theme_type))
                                             ); 
                                             ?>
@@ -127,12 +124,15 @@ class FailSafe_Frontend {
                 
                 <div class="failsafe-notice-footer">
                     <p class="failsafe-notice-info">
-                        <?php 
-                        printf(
-                            /* translators: %s: Plugin name */
-                            esc_html_e('This notice is shown by %s to help you recover from fatal errors.', 'failsafe-fatal-error-recovery'),
-                            '<strong>FailSafe</strong>'
-                        ); 
+                        <?php
+                        echo wp_kses(
+                            sprintf(
+                                /* translators: %s: Plugin name wrapped in <strong> tags */
+                                __( 'This notice is shown by %s to help you recover from fatal errors.', 'failsafe-fatal-error-recovery' ),
+                                '<strong>FailSafe</strong>'
+                            ),
+                            array( 'strong' => array() )
+                        );
                         ?>
                         <?php if (current_user_can('manage_options')): ?>
                             <a href="<?php echo esc_url(admin_url('options-general.php?page=failsafe-fatal-error-recovery')); ?>">
@@ -173,20 +173,17 @@ class FailSafe_Frontend {
      */
     public function ajax_disable_plugin_frontend() {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing
-        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'failsafe_frontend_nonce')) {
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'failsafe_frontend_nonce') || !current_user_can('manage_options')) {
             wp_die(esc_html__('Security check failed.', 'failsafe-fatal-error-recovery'));
         }
         $error_hash = isset($_POST['error_hash']) ? sanitize_text_field(wp_unslash($_POST['error_hash'])) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
-        
+
         global $wpdb;
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        $error = $wpdb->get_row($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            "SELECT * FROM {$table_name} WHERE error_hash = %s AND status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            $error_hash,
-            'pending'
-        ));
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $error = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table_name}` WHERE error_hash = %s AND status = %s", $error_hash, 'pending' ) );
         
         if (!$error) {
             wp_send_json_error(esc_html__('Error not found or already processed.', 'failsafe-fatal-error-recovery'));
@@ -238,10 +235,10 @@ class FailSafe_Frontend {
      * AJAX handler for dismissing errors from frontend
      */
     public function ajax_dismiss_error_frontend() {
-        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'failsafe_frontend_nonce')) {
+        if (!isset($_POST['nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'failsafe_frontend_nonce') || !current_user_can('manage_options')) {
             wp_die(esc_html__('Security check failed.', 'failsafe-fatal-error-recovery'));
         }
-        
+
         $error_hash = isset($_POST['error_hash']) ? sanitize_text_field(wp_unslash($_POST['error_hash'])) : '';
         
         global $wpdb;

@@ -79,11 +79,35 @@ class FailSafe_Error_Handler {
     /**
      * Handle recovery actions from GET parameters
      *
-     * Security note: This uses hash-based verification instead of nonces because:
-     * 1. This runs at muplugins_loaded before WordPress user/session systems are available
-     * 2. The hash is cryptographically random (SHA-256 with random component)
-     * 3. The hash expires after 1 hour for additional security
-     * 4. The hash is invalidated after successful use
+     * SECURITY IMPLEMENTATION:
+     * This function intentionally does NOT use WordPress nonces or capability checks because:
+     *
+     * 1. EXECUTION CONTEXT: Runs at 'muplugins_loaded' hook (priority 1), before WordPress
+     *    initializes user sessions, authentication, or the nonce system. During a fatal error,
+     *    WordPress core may be partially broken, making standard security unavailable.
+     *
+     * 2. HASH-BASED AUTHENTICATION: Uses cryptographic SHA-256 hash combining:
+     *    - Error details (type, message, file, line)
+     *    - Random component generated at error time
+     *    - Stored in database for validation
+     *    This provides security without requiring WordPress auth systems.
+     *
+     * 3. HASH PROPERTIES:
+     *    - Cryptographically secure (SHA-256)
+     *    - Unique per error occurrence
+     *    - Cannot be predicted or forged
+     *    - Validated against database before any action
+     *
+     * 4. EMERGENCY RECOVERY CONTEXT: This is an emergency recovery system. If a site has
+     *    a fatal error, the admin NEEDS access to recovery even if WordPress auth is broken.
+     *    The hash provides sufficient security for this emergency use case.
+     *
+     * Alternative approaches considered and why they don't work:
+     * - WordPress nonces: Not available before user session initialization
+     * - current_user_can(): User system not loaded during fatal error recovery
+     * - Login requirement: Site may be completely broken, admin locked out
+     *
+     * @link https://developer.wordpress.org/reference/hooks/muplugins_loaded/
      */
     public static function handle_recovery_action() {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Hash-based auth used for emergency recovery
@@ -111,14 +135,11 @@ class FailSafe_Error_Handler {
      */
     private static function log_error($error_hash, $error, $plugin_theme_info) {
         global $wpdb;
-        
-        $table_name = $wpdb->prefix . 'failsafe_error_logs';
-        
-        // Check if error already exists
-        $existing = $wpdb->get_var($wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            "SELECT id FROM {$table_name} WHERE error_hash = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            $error_hash
-        ));
+
+        $table_name = esc_sql( $wpdb->prefix . 'failsafe_error_logs' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM `{$table_name}` WHERE error_hash = %s", $error_hash ) );
         
         if ($existing) {
             // Update timestamp of existing error
@@ -188,7 +209,7 @@ class FailSafe_Error_Handler {
         $current_url = FailSafe_Helpers::get_current_url();
 
         // Prepare variables for comprehensive recovery template
-        $causing_item = $plugin_theme_info ? esc_html( $plugin_theme_info['name'] ) : 'Unknown Component';
+        $causing_item = $plugin_theme_info ? esc_html( $plugin_theme_info['name'] ) : esc_html__( 'Unknown Component', 'failsafe-fatal-error-recovery' );
         $causing_type = $plugin_theme_info ? $plugin_theme_info['type'] : 'unknown';
 
         // Get all active plugins and available themes
@@ -200,7 +221,7 @@ class FailSafe_Error_Handler {
         $protected_plugins = isset($options['protected_plugins']) ? $options['protected_plugins'] : array();
         $active_plugins = array();
         foreach ($all_active_plugins as $plugin_path => $plugin_name) {
-            if (!in_array($plugin_path, $protected_plugins)) {
+            if (!in_array($plugin_path, $protected_plugins, true)) {
                 $active_plugins[$plugin_path] = $plugin_name;
             }
         }
@@ -252,21 +273,24 @@ class FailSafe_Error_Handler {
                     delete_option("theme_mods_$current_stylesheet");
                 }
                 
-                // Update recovery info
+                // Update recovery info and invalidate hash to prevent reuse.
+                $failsafe_recovery = get_option( 'failsafe_recovery', array() );
                 $failsafe_recovery['recovered'] = true;
                 $failsafe_recovery['switched_to'] = $theme_slug;
                 $failsafe_recovery['recovery_method'] = 'manual_db_switch';
-                
+                unset( $failsafe_recovery['hash'], $failsafe_recovery['expires'] );
+                update_option( 'failsafe_recovery', $failsafe_recovery );
+
                 // Redirect to admin to complete the theme switch
                 $redirect_url = admin_url();
 
             }
         }
 
-        update_option('failsafe_recovery', $failsafe_recovery);
-        
-        header('Location: ' . $redirect_url);
-        exit;
+        if ( $redirect_url ) {
+            header( 'Location: ' . esc_url_raw( $redirect_url ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Cannot use wp_safe_redirect() at muplugins_loaded; WordPress redirect functions not yet available.
+            exit;
+        }
     }
 
     /**
@@ -297,17 +321,18 @@ class FailSafe_Error_Handler {
                 update_option('active_plugins', $remaining_plugins);
             }
             
-            // Update recovery info
+            // Update recovery info and invalidate hash to prevent reuse.
             $failsafe_recovery = get_option('failsafe_recovery', array());
             $failsafe_recovery['recovered'] = true;
             $failsafe_recovery['deactivated_plugins'] = $deactivated_plugins;
             $failsafe_recovery['recovery_method'] = 'multiple_plugin_deactivation';
+            unset( $failsafe_recovery['hash'], $failsafe_recovery['expires'] );
             update_option('failsafe_recovery', $failsafe_recovery);
         }
         
-        // Redirect to plugins page
-        $redirect_url = admin_url('plugins.php');
-        header('Location: ' . $redirect_url);
+        // Redirect to plugins page.
+        $redirect_url = admin_url( 'plugins.php' );
+        header( 'Location: ' . esc_url_raw( $redirect_url ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- Cannot use wp_safe_redirect() at muplugins_loaded; WordPress redirect functions not yet available.
         exit;
     }
 }

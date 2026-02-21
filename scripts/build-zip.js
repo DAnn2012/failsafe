@@ -3,7 +3,7 @@ const path = require('path');
 const archiver = require('archiver');
 
 // Configuration
-const pluginName = 'failsafe';
+const pluginName = 'failsafe-fatal-error-recovery';
 const sourceDir = path.resolve(__dirname, '..');
 const outputFile = path.resolve(sourceDir, `${pluginName}.zip`);
 
